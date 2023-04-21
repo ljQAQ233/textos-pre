@@ -1,0 +1,3 @@
+[submodule "Src/Boot/Edk2"]
+	path = Src/Boot/Edk2
+	url = https://github.com/ljQAQ233/edk2
