@@ -1,4 +1,5 @@
 #include <Uefi.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 
 #include <Boot/Boot.h>
@@ -100,6 +101,50 @@ EFI_STATUS FileRead (
     return Status;
 }
 
+EFI_STATUS FileAutoRead (
+        IN     EFI_FILE_PROTOCOL *File,
+           OUT VOID              **Data,
+           OUT UINT64            *DataSize
+        )
+{
+    EFI_STATUS Status = EFI_SUCCESS;
+    EFI_FILE_INFO *Info = NULL;
+
+    Status = FileGetInfo (File,&Info);
+    if (EFI_ERROR(Status))
+    {
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Get file infomation failed - Status : %r\n",Status));
+        return Status;
+    }
+    DEBUG ((DEBUG_INFO ,"[ OK ] Get file infomation - %s\n",Info->FileName));
+
+    /* Keep the `Info` unchanged */
+    UINTN Size = Info->FileSize;
+    *Data = AllocatePool (Size);
+    if (Data == NULL)
+    {
+        DEBUG ((DEBUG_INFO, "[FAIL] Get memory space for the file is read\n"));
+        return EFI_OUT_OF_RESOURCES;
+    }
+    
+    Status = FileRead (File,*Data,&Size);
+    if (EFI_ERROR(Status))
+    {
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Read file automatically - Status : %r\n",Status));
+        return Status;
+    }
+    DEBUG ((DEBUG_INFO ,"[ OK ] Read file automatically\n"));
+    
+    if (DataSize)
+    {
+        *DataSize = Size;
+    }
+
+    FileDestroyInfo (&Info);
+
+    return Status;
+}
+
 EFI_STATUS FileWrite (
         IN     EFI_FILE_PROTOCOL *File,
         IN     VOID              *Buffer,
@@ -168,3 +213,61 @@ UINT64 FileGetPosition (
     return Position;
 }
 
+EFI_STATUS FileGetInfo (
+        IN     EFI_FILE_PROTOCOL *File,
+           OUT EFI_FILE_INFO     **Info
+        )
+{
+    EFI_STATUS Status = EFI_SUCCESS;
+
+    /* Make the buffer a NULL that it returns a Correct size of the file info so that we allocate memory for that */
+    UINTN Size = 0;
+    *Info = (EFI_FILE_INFO *)NULL;
+    
+    Status = File->GetInfo (File,&gEfiFileInfoGuid,&Size,(VOID *)*Info);
+    if (Status != EFI_BUFFER_TOO_SMALL)
+    {
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Get the size of the file info - Status : %r\n",Status));
+        return Status;
+    }
+
+    *Info = (EFI_FILE_INFO *)AllocatePool (Size);
+    if (*Info == NULL)
+    {
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Allocate memory for info,function returned NULL\n"));
+        return EFI_OUT_OF_RESOURCES;
+    }
+
+    Status = File->GetInfo (File,&gEfiFileInfoGuid,&Size,(VOID *)*Info);
+    if (EFI_ERROR(Status))
+    {
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Get the file info - Status : %r\n",Status));
+        return Status;
+    }
+
+    DEBUG ((DEBUG_INFO ,"[ OK ] Get file info : %llx\n",*Info));
+    return Status;
+}
+
+EFI_STATUS FileSetInfo (
+        IN EFI_FILE_PROTOCOL *File,
+        IN UINTN             Size,
+        IN EFI_FILE_INFO     *Info
+        )
+{
+    EFI_STATUS Status = File->SetInfo (File,&gEfiFileInfoGuid,Size,Info);
+    if (EFI_ERROR(Status))
+    {
+        DEBUG ((DEBUG_INFO ,"[FAIL] Set info for this file\n - Status : %r\n",Status));
+        return Status;
+    }
+
+    DEBUG ((DEBUG_INFO ,"[ OK ] Set info for this file - InfoSize : %llu\n",Size));
+    return Status;
+}
+
+VOID FileDestroyInfo (EFI_FILE_INFO **Info)
+{
+    FreePool (*Info);
+    *Info = NULL;
+}
