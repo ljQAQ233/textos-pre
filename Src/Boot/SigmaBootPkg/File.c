@@ -67,15 +67,27 @@ EFI_STATUS FileOpen (
     EFI_STATUS Status = gFileProtocol->Open (
             gFileProtocol,
             File,
-            Path,Mode,
+            Path,Mode &~ O_NAPPEND,
             0
         );
     if (EFI_ERROR(Status))
     {
-        DEBUG ((DEBUG_ERROR ,"[FAIL] Open File : %S - Status : %r\n",Path,Status));
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Open File : %S (%llx) - Status : %r\n",Path,Mode,Status));
         return Status;
     }
-    DEBUG ((DEBUG_INFO ,"[ OK ] Open File : %S\n",Path));
+
+    DEBUG ((DEBUG_INFO ,"[ OK ] Open File : %S (%llx)\n", Path, Mode));
+
+    if (Mode & O_NAPPEND)
+    {
+        DEBUG ((DEBUG_INFO ,"[INFO] Re-create file : %s\n", Path));
+        ERR_RETS(FileRemove(*File)); // This operation includes delete and close!!!
+
+        Mode |= O_CREATE;
+        Mode &= ~O_NAPPEND;
+
+        FileOpen (Path,Mode,File);
+    }
 
     return Status;
 }
@@ -271,3 +283,32 @@ VOID FileDestroyInfo (EFI_FILE_INFO **Info)
     FreePool (*Info);
     *Info = NULL;
 }
+
+EFI_STATUS FileRemove (EFI_FILE_PROTOCOL *File)
+{
+    EFI_STATUS Status = File->Delete (File);
+    
+    if (EFI_ERROR(Status))
+    {
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Remove File - Status : %r\n",Status));
+        return Status;
+    }
+    DEBUG ((DEBUG_INFO ,"[ OK ] Remove file\n"));
+
+    return Status;
+}
+
+EFI_STATUS FileClose (EFI_FILE_PROTOCOL *File)
+{
+    EFI_STATUS Status = File->Close (File);
+
+    if (EFI_ERROR(Status))
+    {
+        DEBUG ((DEBUG_ERROR ,"[FAIL] Close File - Status : %r\n",Status));
+        return Status;
+    }
+    DEBUG ((DEBUG_INFO ,"[ OK ] Close file\n"));
+
+    return Status;
+}
+
