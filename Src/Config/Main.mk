@@ -24,8 +24,10 @@ else
   # QEMU    = $(QEMU_BINARY)/qemu-system-i386
 endif
 
+-include Config/Private.mk
+
 SHELL  := bash
-SUDO   := echo q | sudo -S
+SUDO   := echo $(PASSWORD) | sudo -S
 # including password !!!
 
 BASE   := Base

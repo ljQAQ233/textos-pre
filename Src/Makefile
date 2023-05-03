@@ -88,6 +88,11 @@ diskmu:
 		echo "Created an dir for the disk and mounted the disk." \
 	;fi
 
+.PHONY: init
+init:
+	@echo "Initialize the whole project"
+	@bash Utils/init.sh
+
 .PHONY: clean
 clean:
 	find . -iname "*.status_log" | xargs rm -f
