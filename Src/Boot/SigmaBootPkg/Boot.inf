@@ -9,6 +9,7 @@
 [Sources]
     Main.c
     File.c
+    Graphics.c
 
 [Packages]
     MdePkg/MdePkg.dec
@@ -21,6 +22,7 @@
     gEfiFileInfoGuid
 
 [Protocols]
+    gEfiGraphicsOutputProtocolGuid
     gEfiSimpleFileSystemProtocolGuid
 
 [Buildoptions]

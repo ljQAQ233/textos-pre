@@ -4,6 +4,7 @@
 
 #include <Boot/Boot.h>
 #include <Boot/File.h>
+#include <Boot/Graphics.h>
 
 EFI_STATUS EFIAPI UefiMain (
         IN EFI_HANDLE        ImageHandle,
@@ -13,17 +14,7 @@ EFI_STATUS EFIAPI UefiMain (
     Breakpoint();
 
     InitializeFileServices();
-
-    EFI_FILE_PROTOCOL *File;
-    FileOpen (L"\\Read.txt", O_READ | O_WRITE | O_CREATE | O_NAPEND, &File);
-
-    CHAR8 *Buffer = "Hello world!!!";
-    UINTN Size = AsciiStrLen (Buffer);
-
-    FileWrite (File, Buffer, &Size);
-
-    VOID *Data;
-    FileAutoRead (File, &Data, NULL);
+    InitializeGraphicsServices();
 
     return EFI_SUCCESS;
 }
