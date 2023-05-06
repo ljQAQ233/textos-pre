@@ -16,5 +16,11 @@ EFI_STATUS EFIAPI UefiMain (
     InitializeFileServices();
     InitializeGraphicsServices();
 
+    /* 1024 * 768 */
+    /* 1024 * 600 */
+
+    GraphicsResolutionSet (1024,684);
+    GraphicsResolutionSet (1024,685);
+
     return EFI_SUCCESS;
 }
