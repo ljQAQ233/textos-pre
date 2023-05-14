@@ -9,7 +9,9 @@
 [Sources]
     Main.c
     File.c
+    Bmp.c
     Graphics.c
+    Utils.c
 
 [Packages]
     MdePkg/MdePkg.dec
