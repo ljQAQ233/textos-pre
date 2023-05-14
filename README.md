@@ -25,6 +25,7 @@
    - Config  Makefile配置
    - Include 头文件目录
       - Boot SigmaBootPkg的头文件
+   - Resources 资源文件
    - Utils   工具
 
 ---
