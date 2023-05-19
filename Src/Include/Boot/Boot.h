@@ -31,4 +31,6 @@
         }                                                    \
     } while (FALSE);
 
+#define LOGO_PATH L"\\Sigma.bmp"
+
 #endif
