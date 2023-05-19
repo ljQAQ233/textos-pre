@@ -4,9 +4,10 @@
 #include <Library/MemoryAllocationLib.h>
 
 #include <Boot/Boot.h>
-#include <Boot/Logo.h>
-#include <Boot/Graphics.h>
 #include <Boot/File.h>
+#include <Boot/Logo.h>
+#include <Boot/Config.h>
+#include <Boot/Graphics.h>
 
 EFI_STATUS EFIAPI UefiMain (
         IN EFI_HANDLE        ImageHandle,
@@ -18,7 +19,10 @@ EFI_STATUS EFIAPI UefiMain (
     InitializeGraphicsServices();
     InitializeFileServices();
 
-    LogoShow (LOGO_PATH);
+    InitializeConfig();
+
+    CHAR16 *LogoPath = ConfigGetStringChar16 ("Logo", D_LOGO_PATH);
+    LogoShow (LogoPath);
 
     return EFI_SUCCESS;
 }

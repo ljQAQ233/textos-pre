@@ -31,6 +31,10 @@
         }                                                    \
     } while (FALSE);
 
-#define LOGO_PATH L"\\Sigma.bmp"
+#define CONFIG_PATH L"\\Config.ini"
+
+#define D_HOR 1024
+#define D_VER 768
+#define D_LOGO_PATH "\\Sigma.bmp"
 
 #endif
