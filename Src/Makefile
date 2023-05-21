@@ -14,7 +14,7 @@ ifneq ($(findstring qemubg,${MAKECMDGOALS}),)
 endif
 
 .PHONY: all
-all: _BootUpdate Image
+all: _BootUpdate Kernel Image
 
 include Config/Qemu.mk
 
@@ -32,6 +32,10 @@ ovmf:
 	# @make -C Boot TARGET=DEBUG FLAGS="-DDEBUG_ON_SERIAL_PORT=TRUE" Ovmf
 	@make -C Boot TARGET=NOOPT FLAGS="-DDEBUG_ON_SERIAL_PORT=TRUE -DSOURCE_DEBUG_ENABLE=TRUE" Ovmf
 	@echo -e "OVMF is up-to-date\n"
+
+.PHONY: Kernel
+Kernel:
+	@nasm -f bin Kernel.s -o ./Resources/Kernel.bin # Make it easy to get it ran
 
 .PHONY: Image
 Image:
