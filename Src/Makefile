@@ -14,7 +14,7 @@ ifneq ($(findstring qemubg,${MAKECMDGOALS}),)
 endif
 
 .PHONY: all
-all: _BootUpdate Image
+all: _BootUpdate Kernel Image
 
 include Config/Qemu.mk
 
@@ -28,6 +28,10 @@ ovmf:
 	@echo -e "Start to Compile OVMF...\n"
 	@make -C Boot TARGET=RELEASE Ovmf
 	@echo -e "OVMF is up-to-date\n"
+
+.PHONY: Kernel
+Kernel:
+	@nasm -f bin Kernel.s -o ./Resources/Kernel.bin # Make it easy to get it ran
 
 .PHONY: Image
 Image:
