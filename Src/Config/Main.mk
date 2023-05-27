@@ -16,6 +16,11 @@ else
 endif
 # Boot Built Executable EFI File Output File on Host
 
+KERNEL_OUTPUT := $(OUTPUT)/Kernel
+# Kernel Build Output Directory
+KERNEL_EXEC   := $(KERNEL_OUTPUT)/Kernel.elf
+# Kernel Built Executable ELF File Output File on Host
+
 ifeq (${ARCH},X64)
   IMG_EFI = $(IMG_MDIR)/EFI/Boot/bootX64.efi
 else
@@ -35,4 +40,4 @@ UTILS  := $(abspath ${UTILS})
 
 export CC NASM SHELL TERM SUDO
 export SRC_DIR BASE UTILS
-export BOOT_OUTPUT BOOT_EXEC IMG_EFI
+export BOOT_OUTPUT BOOT_EXEC KERNEL_OUTPUT KERNEL_EXEC IMG_EFI

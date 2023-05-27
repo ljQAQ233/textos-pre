@@ -9,7 +9,7 @@
 - [GitHub | ljQAQ233](https://github.com/ljQAQ233)
 - [Bilibili | maouai233](https://space.bilibili.com/503518259)
 
-在B站不定期更新,有错误请提交issue,谢谢!学生党,更新慢,请见谅.
+在B站不定期更新,有错误什么的请提交issue/PR,谢谢!学生党,更新慢,请见谅.
 
 # 目录结构
 
@@ -24,7 +24,9 @@
      - SigmaBootPkg Boot源码
    - Config  Makefile配置
    - Include 头文件目录
-      - Boot SigmaBootPkg的头文件
+      - Boot   SigmaBootPkg的头文件
+      - TextOS TextOS的头文件
+   - Kernel  内核源代码
    - Resources 资源文件
    - Utils   工具
 

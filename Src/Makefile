@@ -35,7 +35,9 @@ ovmf:
 
 .PHONY: Kernel
 Kernel:
-	@gcc -static -nostdlib -nostdinc -ffreestanding -fno-stack-protector -z max-page-size=0x1000 -Wl,-Ttext-segment=0x100000 Kernel.c -o Resources/Kernel.elf # Make it easy to get it ran
+	@echo -e "Start to Compile Kernel Module...\n"
+	@make -C Kernel
+	@echo -e "Kernel Module was completed\n"
 
 .PHONY: Image
 Image:
@@ -51,6 +53,7 @@ Image:
 	@$(SUDO) mkdir -p $(IMG_MDIR)/EFI/Boot/
 	@$(SUDO) cp $(BOOT_EXEC) $(IMG_MDIR)/EFI/Boot/$(OUT_EFI)
 	@$(SUDO) cp -rf Resources/* $(IMG_MDIR)/
+	@$(SUDO) cp $(KERNEL_EXEC) $(IMG_MDIR)/
 	
 	@echo "Image was done!"
 	@while $(SUDO) umount $(IMG_MDIR) 2>/dev/null; \
