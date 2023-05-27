@@ -35,7 +35,7 @@ ovmf:
 
 .PHONY: Kernel
 Kernel:
-	@nasm -f bin Kernel.s -o ./Resources/Kernel.bin # Make it easy to get it ran
+	@gcc -static -nostdlib -nostdinc -ffreestanding -fno-stack-protector -z max-page-size=0x1000 -Wl,-Ttext-segment=0x100000 Kernel.c -o Resources/Kernel.elf # Make it easy to get it ran
 
 .PHONY: Image
 Image:
