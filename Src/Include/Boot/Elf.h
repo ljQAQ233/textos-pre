@@ -190,8 +190,9 @@ typedef struct {
 
 EFI_STATUS
 ElfLoad (
-  VOID             *Buffer,
-  PHYSICAL_ADDRESS *Entry
+  IN     VOID             *Buffer,
+  IN     PHYSICAL_ADDRESS *Entry,
+     OUT KERNEL_PAGE      **Pages
   );
 
 #endif
