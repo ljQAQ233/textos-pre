@@ -13,7 +13,15 @@
 #include <Boot/Kernel.h>
 
 typedef struct {
-    UINT64 Magic;
+  UINT64 Hor;
+  UINT64 Ver;
+  UINT64 FrameBuffer;
+  UINT64 FrameBufferSize;
+} GRAPHICS_CONFIG;
+
+typedef struct {
+  UINT64          Magic;
+  GRAPHICS_CONFIG Graphics;
 } BOOT_CONFIG;
 
 /* From tanyugang's Code,and I modified it,very thanks! */
@@ -57,6 +65,7 @@ EFI_STATUS EFIAPI UefiMain (
 
     KERNEL_PAGE *KernelPages;
     EFI_PHYSICAL_ADDRESS KernelEntry;
+
     KernelLoad (KernelPath, &KernelEntry, &KernelPages);
 
     UINT64 PML4Addr;
@@ -67,6 +76,10 @@ EFI_STATUS EFIAPI UefiMain (
     ExitBootServices (ImageHandle, &Map);
 
     Config->Magic = SIGNATURE_64('T', 'E', 'X', 'T', 'O', 'S', 'B', 'T');
+    Config->Graphics.FrameBuffer     = gGraphicsOutputProtocol->Mode->FrameBufferBase;
+    Config->Graphics.FrameBufferSize = gGraphicsOutputProtocol->Mode->FrameBufferSize;
+    Config->Graphics.Hor             = gGraphicsOutputProtocol->Mode->Info->HorizontalResolution;
+    Config->Graphics.Ver             = gGraphicsOutputProtocol->Mode->Info->VerticalResolution;
 
     UINT64 Ret = ((UINT64 (*)(BOOT_CONFIG *))KernelEntry)(Config); // A ptr to entry and call it to get status it returned
     IGNORE (Ret);
