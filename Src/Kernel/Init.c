@@ -1,7 +1,9 @@
 #include <TextOS/TextOS.h>
 
-u64 KernelInit()
+#include <Boot.h>
+
+void KernelInit (BOOT_CONFIG *Config)
 {
-    return 233;
+    return;
 }
 

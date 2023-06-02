@@ -19,6 +19,7 @@
     Memory.c
     Page.c
     Kernel.c
+    Args.c
 
 [Packages]
     MdePkg/MdePkg.dec

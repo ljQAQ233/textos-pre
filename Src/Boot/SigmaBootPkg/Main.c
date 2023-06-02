@@ -11,6 +11,20 @@
 #include <Boot/Graphics.h>
 #include <Boot/Memory.h>
 #include <Boot/Kernel.h>
+#include <Boot/Args.h>
+
+typedef struct {
+  UINT64 Hor;
+  UINT64 Ver;
+  UINT64 FrameBuffer;
+  UINT64 FrameBufferSize;
+} GRAPHICS_CONFIG;
+
+typedef struct {
+  GRAPHICS_CONFIG Graphics;
+  CHAR8           *Test;
+  ARGS_STACK      Args;
+} BOOT_CONFIG;
 
 /* From tanyugang's Code,and I modified it,very thanks! */
 
@@ -54,21 +68,38 @@ EFI_STATUS EFIAPI UefiMain (
 
     InitializeConfig();
 
+    UINT64 ArgSize = 0;
+    BOOT_CONFIG *Config = AllocateZeroPool (sizeof (BOOT_CONFIG));
+
     CHAR16 *KernelPath = ConfigGetStringChar16 ("Kernel",D_KERNEL_PATH);
 
     KERNEL_PAGE *KernelPages;
     EFI_PHYSICAL_ADDRESS KernelEntry;
     KernelLoad (KernelPath,&KernelEntry,&KernelPages);
 
+    MAP_INFO *Map = AllocateZeroPool (sizeof (MAP_INFO));
+
+    Config->Test = "Hello world!";
+    ArgSize += AsciiStrLen (Config->Test);
+
+    InitializeArgs(&Config->Args, ArgSize);
+    ArgsPush (&Config->Args, (VOID **)&Config->Test, AsciiStrLen (Config->Test));
+
     UINT64 PML4Addr;
     InitializePageTab (KernelPages,&PML4Addr);
     UpdateCr3 (PML4Addr,0);
 
-    MAP_INFO Map;
-    ExitBootServices (ImageHandle,&Map);
+    ExitBootServices (ImageHandle,Map);
 
-    UINT64 Ret = ((UINT64 (*)(void))KernelEntry)(); // A ptr to entry and call it to get status it returned
-    IGNORE (Ret);
+    // TODO: More args
+    Config->Graphics.FrameBuffer = gGraphicsOutputProtocol->Mode->FrameBufferBase;
+    Config->Graphics.FrameBufferSize = gGraphicsOutputProtocol->Mode->FrameBufferSize;
+    Config->Graphics.Hor = gGraphicsOutputProtocol->Mode->Info->HorizontalResolution;
+    Config->Graphics.Ver = gGraphicsOutputProtocol->Mode->Info->VerticalResolution;
+
+    Config->Memory.Map = Map;
+
+    ((VOID (*)(BOOT_CONFIG *))KernelEntry)(Config);
 
     return EFI_SUCCESS;
 }
