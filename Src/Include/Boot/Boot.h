@@ -31,6 +31,9 @@
         }                                                    \
     } while (FALSE);
 
+#define IGNORE(Var) \
+    { while (FALSE && Var); }
+
 #define CONFIG_PATH L"\\Config.ini"
 
 #define D_HOR 1024
