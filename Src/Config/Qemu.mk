@@ -35,4 +35,9 @@ QEMU_FLAGS_BDBG  := $(QEMU_FLAGS_DBG) \
 			   -bios $(OVMF_NOOPT) \
 			   -serial pipe:$(PIPE)
 
+QEMU_FLAGS_KDBG  := $(QEMU_FLAGS_DBG) \
+			   -bios $(OVMF) \
+			   -s -S \
+			   -serial stdio
+
 # Qemu Args for Debugging

@@ -19,6 +19,11 @@ Kernel: $(KERNEL_OUTPUT) $(KERNEL_EXEC)
 $(KERNEL_EXEC): $(OBJS)
 	@$(LD) $(LDFLAGS) $^ -T Linker.ld -o $@
 	@echo -e "\033[032m   LD  \033[0m Linked all objects -> $@"
+	@if [[ "$(DEBUG)" == "true" ]];then \
+	  $(OBJCOPY) --only-keep-debug $@ $@.symbol \
+	  ;echo -e "\033[032m   OCP \033[0m $@ -> ${@:$(OUTPUT)/%=%}.symbol" \
+	;fi
+	@$(OBJCOPY) --strip-debug $@ $@
 
 $(KERNEL_OUTPUT):
 	@mkdir -p $(KERNEL_OUTPUT)

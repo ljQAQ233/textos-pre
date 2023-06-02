@@ -88,6 +88,12 @@ qemubg: all
 	@echo "Running Qemu"
 	@$(QEMU) $(QEMU_FLAGS_BDBG)
 
+.PHONY: qemug
+qemug: export BOOT_DEBUG=false
+qemug: all
+	@echo "Starting kernel debugging..."
+	@$(QEMU) $(QEMU_FLAGS_KDBG)
+
 .PHONY: diskmu
 diskmu:
 	@mkdir -p $(IMG_MDIR)

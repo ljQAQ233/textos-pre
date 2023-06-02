@@ -38,6 +38,7 @@ UTILS  := Utils
 BASE   := $(abspath ${BASE})
 UTILS  := $(abspath ${UTILS})
 
+export DEBUG
 export CC NASM SHELL TERM SUDO
 export SRC_DIR BASE UTILS
 export BOOT_OUTPUT BOOT_EXEC KERNEL_OUTPUT KERNEL_EXEC IMG_EFI
