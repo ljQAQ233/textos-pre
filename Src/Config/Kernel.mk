@@ -4,6 +4,7 @@ ARCH         ?= X64
 CC      := gcc
 LD      := ld
 NASM    := nasm
+OBJCOPY := objcopy
 
 # Include path
 INCLUDE := $(SRC_DIR)/Include
