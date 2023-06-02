@@ -3,7 +3,10 @@ OUTPUT := $(KERNEL_OUTPUT)
 
 export OUTPUT
 
-SRCS := Init.c
+SRCS := Init.c Main.c
+
+include Init/Init.mk
+include Graphics/Graphics.mk
 
 OBJS := $(SRCS:.c=.c.o)
 OBJS := $(OBJS:.s=.s.o)

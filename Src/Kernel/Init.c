@@ -2,8 +2,14 @@
 
 #include <Boot.h>
 
+extern void __GraphicsInit (BOOT_CONFIG *Config);
+
+extern void KernelMain();
+
 void KernelInit (BOOT_CONFIG *Config)
 {
-    return;
+    __GraphicsInit (Config);
+
+    KernelMain();
 }
 

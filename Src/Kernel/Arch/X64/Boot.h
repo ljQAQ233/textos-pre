@@ -15,8 +15,12 @@ typedef struct {
 } GRAPHICS_CONFIG;
 
 typedef struct {
+  void   *Map;
+} MEMORY_CONFIG;
+
+typedef struct {
   GRAPHICS_CONFIG Graphics;
-  CHAR8*          *Test;
+  MEMORY_CONFIG   Memory;
   ARGS_STACK      Args;
 } BOOT_CONFIG;
 

@@ -21,8 +21,12 @@ typedef struct {
 } GRAPHICS_CONFIG;
 
 typedef struct {
+  VOID   *Map;
+} MEMORY_CONFIG;
+
+typedef struct {
   GRAPHICS_CONFIG Graphics;
-  CHAR8           *Test;
+  MEMORY_CONFIG   Memory;
   ARGS_STACK      Args;
 } BOOT_CONFIG;
 
@@ -79,11 +83,7 @@ EFI_STATUS EFIAPI UefiMain (
 
     MAP_INFO *Map = AllocateZeroPool (sizeof (MAP_INFO));
 
-    Config->Test = "Hello world!";
-    ArgSize += AsciiStrLen (Config->Test);
-
     InitializeArgs(&Config->Args, ArgSize);
-    ArgsPush (&Config->Args, (VOID **)&Config->Test, AsciiStrLen (Config->Test));
 
     UINT64 PML4Addr;
     InitializePageTab (KernelPages,&PML4Addr);
