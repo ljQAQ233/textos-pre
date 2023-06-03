@@ -6,6 +6,7 @@ export OUTPUT
 SRCS := Init.c Main.c
 
 include Init/Init.mk
+include Console/Console.mk
 include Graphics/Graphics.mk
 
 OBJS := $(SRCS:.c=.c.o)
