@@ -2,6 +2,7 @@
 #define __GRAPHICS_H__
 
 #include "Graphics/Base.h"
+#include "Graphics/Font.h"
 
 #endif
 

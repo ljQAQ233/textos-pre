@@ -4,6 +4,6 @@
 
 void KernelMain ()
 {
-    BlockPut (256, 256, 16, 16, RGB_COLOR(255, 255, 255));
+    FontShow ('M', FontGet(0), 0, 0, 0xffffffff, 0x00);
 }
 
