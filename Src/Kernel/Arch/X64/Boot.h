@@ -12,26 +12,13 @@ typedef struct {
   UINT64 Ver;
   UINT64 FrameBuffer;
   UINT64 FrameBufferSize;
+  void   *Font;
 } GRAPHICS_CONFIG;
 
 typedef struct {
-  void   *Map;
-} MEMORY_CONFIG;
-
-typedef struct {
   GRAPHICS_CONFIG Graphics;
-  MEMORY_CONFIG   Memory;
   ARGS_STACK      Args;
 } BOOT_CONFIG;
-
-typedef struct {
-    void    *Maps;
-    UINTN   MapSiz;
-    UINTN   MapCount;
-    UINTN   MapKey;
-    UINTN   DescSiz;
-    UINT32  DescVersion;
-} MAP_INFO;
 
 extern BOOT_CONFIG _BootConfig;
 

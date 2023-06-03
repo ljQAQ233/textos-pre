@@ -4,6 +4,6 @@
 
 void KernelMain ()
 {
-    BlockPut (255,255,16,16,0xffffffff);
+    FontShow ('M',Font,0,0,0xffffffff,0x00);
 }
 

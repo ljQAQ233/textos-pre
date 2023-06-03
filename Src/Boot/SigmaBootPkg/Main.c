@@ -18,15 +18,11 @@ typedef struct {
   UINT64 Ver;
   UINT64 FrameBuffer;
   UINT64 FrameBufferSize;
+  VOID   *Font;
 } GRAPHICS_CONFIG;
 
 typedef struct {
-  VOID   *Map;
-} MEMORY_CONFIG;
-
-typedef struct {
   GRAPHICS_CONFIG Graphics;
-  MEMORY_CONFIG   Memory;
   ARGS_STACK      Args;
 } BOOT_CONFIG;
 
@@ -73,6 +69,7 @@ EFI_STATUS EFIAPI UefiMain (
     InitializeConfig();
 
     UINT64 ArgSize = 0;
+
     BOOT_CONFIG *Config = AllocateZeroPool (sizeof (BOOT_CONFIG));
 
     CHAR16 *KernelPath = ConfigGetStringChar16 ("Kernel",D_KERNEL_PATH);
@@ -81,15 +78,21 @@ EFI_STATUS EFIAPI UefiMain (
     EFI_PHYSICAL_ADDRESS KernelEntry;
     KernelLoad (KernelPath,&KernelEntry,&KernelPages);
 
-    MAP_INFO *Map = AllocateZeroPool (sizeof (MAP_INFO));
-
+    CHAR16 *FontPath = ConfigGetStringChar16 ("Font",D_FONT_PATH);
+    FONT_CONFIG *Font = AllocateZeroPool (sizeof (FONT_CONFIG));
+    FontLoad (FontPath,Font);
+    
+    ArgSize += sizeof(FONT_CONFIG) + Font->Size;
     InitializeArgs(&Config->Args, ArgSize);
+    ArgsPush (&Config->Args, (VOID **)&Font, sizeof(FONT_CONFIG));
+    ArgsPush (&Config->Args, (VOID **)&Font->Base, Font->Size);
 
     UINT64 PML4Addr;
     InitializePageTab (KernelPages,&PML4Addr);
     UpdateCr3 (PML4Addr,0);
 
-    ExitBootServices (ImageHandle,Map);
+    MAP_INFO Map;
+    ExitBootServices (ImageHandle,&Map);
 
     // TODO: More args
     Config->Graphics.FrameBuffer = gGraphicsOutputProtocol->Mode->FrameBufferBase;
@@ -97,7 +100,7 @@ EFI_STATUS EFIAPI UefiMain (
     Config->Graphics.Hor = gGraphicsOutputProtocol->Mode->Info->HorizontalResolution;
     Config->Graphics.Ver = gGraphicsOutputProtocol->Mode->Info->VerticalResolution;
 
-    Config->Memory.Map = Map;
+    Config->Graphics.Font = Font;
 
     ((VOID (*)(BOOT_CONFIG *))KernelEntry)(Config);
 

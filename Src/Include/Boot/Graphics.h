@@ -4,6 +4,7 @@
 #include <Protocol/GraphicsOutput.h>
 
 #include <Boot/Bmp.h>
+#include <Boot/Font.h>
 
 extern EFI_GRAPHICS_OUTPUT_PROTOCOL *gGraphicsOutputProtocol;
 

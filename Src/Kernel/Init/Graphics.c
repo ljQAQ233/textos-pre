@@ -10,5 +10,7 @@ void __GraphicsInit (BOOT_CONFIG *Config)
     Ver = Config->Graphics.Ver;
     FrameBuffer = (u32 *)Config->Graphics.FrameBuffer;
     FrameBufferSize = Config->Graphics.FrameBufferSize;
+
+    Font = Config->Graphics.Font;
 }
 
