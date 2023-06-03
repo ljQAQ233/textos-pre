@@ -9,6 +9,9 @@
 #define MIN(A,B) \
     (A < B) ? A : B
 
+#define ABS(Num) \
+    (Num > 0) ? (Num) : (-Num)
+
 /* The Bool Type Value */
 #define true     (1 == 1)
 #define false    (1 == 0)
