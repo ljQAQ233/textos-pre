@@ -9,6 +9,8 @@ include Init/Init.mk
 include Console/Console.mk
 include Graphics/Graphics.mk
 
+include Lib/Lib.mk
+
 OBJS := $(SRCS:.c=.c.o)
 OBJS := $(OBJS:.s=.s.o)
 OBJS := $(OBJS:.asm=.asm.o)
