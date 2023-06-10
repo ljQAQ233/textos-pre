@@ -1,4 +1,4 @@
 #pragma once
 
-int PrintK (char *Format, ...);
+int PrintK (const char *Format, ...);
 
