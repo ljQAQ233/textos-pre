@@ -3,11 +3,11 @@
 #include <TextOS/Console.h>
 #include <TextOS/Assert.h>
 
+extern void InitializeGdt ();
+
 void KernelMain ()
 {
     ConsoleInit();
 
-    ASSERTK (1 == 1);
-    ASSERTK (1 == 0);
+    InitializeGdt();
 }
-
