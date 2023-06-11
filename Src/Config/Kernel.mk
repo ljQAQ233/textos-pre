@@ -18,6 +18,7 @@ CFLAGS   += -fno-builtin
 CFLAGS   += -ffreestanding
 CFLAGS   += -fno-stack-protector
 CFLAGS   += $(addprefix -I,${INCLUDE})
+CFLAGS   += -include $(SRC_DIR)/Include/TextOS/TextOS.h
 CFLAGS   += -g -O0
 CFLAGS   += -std=c11
 
