@@ -3,7 +3,7 @@ OUTPUT := $(KERNEL_OUTPUT)
 
 export OUTPUT
 
-SRCS := Init.c Main.c
+SRCS := Init.c Main.c Debug.c
 
 include Init/Init.mk
 include Console/Console.mk
