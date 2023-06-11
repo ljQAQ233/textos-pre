@@ -1,0 +1,2 @@
+
+SRCS += Stdlib/string.c
