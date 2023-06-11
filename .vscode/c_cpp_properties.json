@@ -7,7 +7,7 @@
                 "${workspaceFolder}/Src/Include",
                 "${workspaceFolder}/Src/Boot/MdePkg/Include"
             ],
-            "defines": [],
+            "defines": ["__TEXTOS_DEBUG"],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++14",

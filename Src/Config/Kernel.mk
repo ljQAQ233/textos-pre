@@ -22,6 +22,10 @@ CFLAGS   += -include $(SRC_DIR)/Include/TextOS/TextOS.h
 CFLAGS   += -g -O0
 CFLAGS   += -std=c11
 
+ifeq (${DEBUG},true)
+	CFLAGS += -D__TEXTOS_DEBUG
+endif
+
 # Nasm flags
 NFLAGS   := -f elf64
 
