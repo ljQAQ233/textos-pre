@@ -1,7 +1,9 @@
 SHELL  := bash
 OUTPUT := $(KERNEL_OUTPUT)
 
-export OUTPUT
+ARCH_DIR = Arch/$(ARCH)
+
+export OUTPUT ARCH_DIR
 
 SRCS := Init.c Main.c Debug.c Assert.c
 
@@ -11,6 +13,8 @@ include Graphics/Graphics.mk
 
 include Lib/Lib.mk
 include Stdlib/Stdlib.mk
+
+include $(ARCH_DIR)/Arch.mk
 
 OBJS := $(SRCS:.c=.c.o)
 OBJS := $(OBJS:.s=.s.o)

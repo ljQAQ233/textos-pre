@@ -9,7 +9,7 @@ OBJCOPY := objcopy
 # Include path
 INCLUDE := $(SRC_DIR)/Include
 INCLUDE += $(SRC_DIR)/Include/TextOS/Stdlib
-INCLUDE += $(abspath Arch/$(ARCH))
+INCLUDE += $(abspath ${ARCH_DIR})
 
 CFLAGS   := -static
 CFLAGS   += -nostdlib
