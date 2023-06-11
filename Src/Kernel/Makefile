@@ -10,6 +10,7 @@ include Console/Console.mk
 include Graphics/Graphics.mk
 
 include Lib/Lib.mk
+include Stdlib/Stdlib.mk
 
 OBJS := $(SRCS:.c=.c.o)
 OBJS := $(OBJS:.s=.s.o)
