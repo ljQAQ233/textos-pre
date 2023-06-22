@@ -12,6 +12,18 @@ LoadGdt:
     lgdt [rdi]
     ret
 
+; void ReadIdt (void *Idtr);
+global ReadIdt
+ReadIdt:
+    sidt [rdi]
+    ret
+
+; void LoadIdt (void *Idtr);
+global LoadIdt
+LoadIdt:
+    lidt [rdi]
+    ret
+
 ; void ReloadSegs ();
 global ReloadSegs
 ReloadSegs:
