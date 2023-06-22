@@ -34,6 +34,7 @@ $(KERNEL_EXEC): $(OBJS)
 	  $(OBJCOPY) --only-keep-debug $@ $@.symbol \
 	  ;echo -e "\033[032m   OCP \033[0m $@ -> ${@:$(OUTPUT)/%=%}.symbol" \
 	;fi
+	@$(OBJCOPY) --strip-debug $@ $@
 
 $(KERNEL_OUTPUT):
 	@mkdir -p $(KERNEL_OUTPUT)
