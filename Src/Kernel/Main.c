@@ -12,8 +12,4 @@ void KernelMain ()
 
     InitializeGdt();
     InitializeIdt();
-
-    __asm__ volatile ("sti");
-
-    __asm__ volatile ("int $0");
 }
