@@ -1,3 +1,4 @@
+#include <cpu.h>
 #include <textos/debug.h>
 
 void assertk (
@@ -8,10 +9,10 @@ void assertk (
         )
 {
     if (!state) {
-        debugk(K_SYNC, file, line, "[%s:%d] Assert failed!!! -> %s\n", expr);
+        dprintk(K_SYNC, "assertion failed!!! -> %s\n", expr);
     } else {
         return;
     }
 
-    while (true) ; // TODO : interrupt
+    while (true) halt(); // TODO : interrupt
 }
