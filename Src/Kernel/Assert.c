@@ -1,5 +1,7 @@
 #include <TextOS/Console/PrintK.h>
 
+#include <Cpu.h>
+
 void AssertK (
         const char *File,
         const u64  Line,
@@ -13,5 +15,6 @@ void AssertK (
         return;
     }
 
-    while (true) ; // TODO : interrupt
+    while (true)
+        Halt(); // TODO : interrupt
 }

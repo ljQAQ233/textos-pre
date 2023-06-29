@@ -1,6 +1,7 @@
 #include <TextOS/TextOS.h>
 #include <TextOS/Args.h>
 #include <TextOS/Console.h>
+#include <TextOS/Dev/Serial.h>
 #include <TextOS/Lib/VSPrint.h>
 
 #define PRINTK_BUFFER_MAX 256
@@ -14,6 +15,7 @@ size_t PrintK (const char *Format, ...)
 
     size_t i = VSPrint (Buffer, Format, Args);
 
+    SerialWrite (Buffer);
     ConsoleWrite (Buffer);
 
     va_end (Args);

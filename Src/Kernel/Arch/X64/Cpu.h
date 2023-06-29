@@ -19,6 +19,8 @@ typedef struct RegFrame {
   u64 ErrorCode;
 } RegFrame_t;
 
+void Halt ();
+
 void ReadGdt (void *Gdtr);
 
 void LoadGdt (void *Gdtr);
