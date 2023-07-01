@@ -15,6 +15,12 @@
 #define OFFSET(Ptr, Offset) \
     ((void *)(Ptr) + (Offset))
 
+#define DIV_ROUND_UP(Num, Divisor) \
+    (((Num) + ((Divisor) -  1)) / (Divisor))
+
+#define DIV_ROUND_DOWN(Num, Divisor) \
+    ((Num) / (Divisor))
+
 /* The Bool Type Value */
 #define true     (1 == 1)
 #define false    (1 == 0)
@@ -33,6 +39,10 @@
 #define NULL     (VOID*)0
 
 #define PAGE_SIZ 0x1000
+
+#define  SIZE_4KB    0x00001000
+#define  SIZE_2MB    0x00200000
+#define  SIZE_1GB    0x40000000
 
 #endif
 

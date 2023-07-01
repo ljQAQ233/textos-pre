@@ -29,6 +29,8 @@ void LoadIdt (void *Idtr);
 
 void ReloadSegs ();
 
+u64 ReadCr3 ();
 
+u64 WriteCr3 ();
 
 #endif
