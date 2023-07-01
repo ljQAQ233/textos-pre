@@ -1,8 +1,7 @@
 #include <textos/textos.h>
 #include <textos/video.h>
 #include <textos/console.h>
-#include <textos/dev/serial.h>
-#include <textos/panic.h>
+#include <textos/printk.h>
 
 extern void console_init();
 extern void gdt_init();
@@ -22,12 +21,16 @@ void kernel_main ()
 
     mm_init();
 
-    void *page;
+    char *ptr[5];
+    ptr[0] = malloc(2);
+    ptr[1] = malloc(74);
+    ptr[2] = malloc(25);
+    ptr[3] = malloc(2333333);
 
-    page = pmm_allocpages(1);
-    pmm_freepages(page, 1);
-    page = pmm_allocpages(5);
-    pmm_freepages(page, 6);
+    free (ptr[0]);
+    free (ptr[1]);
+    free (ptr[2]);
+    free (ptr[3]);
 
     while (true);
 }
