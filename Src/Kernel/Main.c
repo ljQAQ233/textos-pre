@@ -21,11 +21,14 @@ void KernelMain ()
 
     MemoryInit();
 
-    VMMap (0x1000, 0x233333333000, 1, PE_P | PE_RW | 0x23, MAP_4K);
-    char *vptr = (char *)0x233333333000;
-    char *pptr = (char *)0x1000;
+    char *ptr[5];
+    ptr[0] = MallocK(2);
+    ptr[1] = MallocK(74);
+    ptr[2] = MallocK(25);
+    ptr[3] = MallocK(2333333);
 
-    DEBUGK ("%c\n", *vptr);
-    *pptr = 'T';
-    DEBUGK ("%c\n", *vptr);
+    FreeK (ptr[0]);
+    FreeK (ptr[1]);
+    FreeK (ptr[2]);
+    FreeK (ptr[3]);
 }

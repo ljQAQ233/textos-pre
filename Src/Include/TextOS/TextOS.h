@@ -9,4 +9,6 @@
 #define KERN_PHY (0x100000) // 内核物理地址.
 #define KERN_ATC (0x100000) // 内核附属空间大小.
 
+#define KERN_HEAPV 0xFFFFFF0000000000ULL
+
 #endif

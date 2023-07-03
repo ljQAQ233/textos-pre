@@ -8,4 +8,8 @@ void *PMM_AllocPages (size_t Num);
 
 void PMM_FreePages (void *Page, size_t Num);
 
+void *MallocK (size_t Siz);
+
+void FreeK (void *Addr);
+
 #endif
