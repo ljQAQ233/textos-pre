@@ -25,3 +25,4 @@ enum MapMode {
 
 void VMMap (u64 Phy, u64 Vrt, size_t Num, u16 Flgs, int Mode);
 
+void VMMap_Umap (u64 Vrt, size_t Num, int Mode);

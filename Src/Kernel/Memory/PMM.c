@@ -1,4 +1,10 @@
+/*
+   NOTE : We must switch mode to allocate memory for noides before
+          break the lower memory space down!
+*/
+
 #include <TextOS/Memory.h>
+#include <TextOS/Memory/Malloc.h>
 #include <TextOS/Debug.h>
 #include <TextOS/Assert.h>
 #include <TextOS/Uefi.h>
@@ -12,13 +18,25 @@ static u64 PageFree;
 /* Mark which zones are free,every node is so small that can be placed in a page easily */
 struct FreeNode {
     u64 PageNum;
+    u64 Addr;
     struct FreeNode *Next;
 };
 typedef struct FreeNode FreeNode_t;
 
 static FreeNode_t _Free;
 
-void PMM_Init ()
+typedef void * (*NewNode_t) (void *Node, size_t Num);
+/*
+   Ways to allocate memory for nodes:
+   1. Put FreeNode in free pages directly
+   2. MallocK!!!
+*/
+static NewNode_t NewNode;
+static void *EarlyNewNode (void *Node, size_t Num) { return Node + Num * PAGE_SIZ; }
+static void *AfterNewNode (void *Node, size_t Num) { return MallocK (sizeof(FreeNode_t)); }
+static void _PMM_SwitchMode () { NewNode = AfterNewNode; }
+
+void PMM_EarlyInit ()
 {
     MAP_INFO *Info = _BootConfig.Memory.Map;
     EFI_MEMORY_DESCRIPTOR *Ptr = Info->Maps + Info->DescSiz; // Skip the first one,its ptr points to NULL.
@@ -27,9 +45,8 @@ void PMM_Init ()
     for (u64 i = 1;i < Info->MapCount;i++, Ptr = OFFSET(Ptr, Info->DescSiz))
     {
         DEBUGK ("Desc % 3llu : Phy - %016llx , PgSiz - %llu\n", i, Ptr->PhysicalStart, Ptr->NumberOfPages);
-        // if (Ptr->Type == EfiBootServicesData ||
-        //     Ptr->Type == EfiBootServicesCode)
-        //     Ptr->Type  = EfiConventionalMemory;
+
+        /* 回收 启动时服务的内存 的工作交给后辈... */
 
         if (Ptr->Type != EfiConventionalMemory)
             continue;
@@ -48,6 +65,7 @@ void PMM_Init ()
         else if (DeltaStart < 0 && ABS(DeltaStart) + KERN_ATC < Ptr->NumberOfPages * PAGE_SIZ) { // on the left
             Node->Next = (FreeNode_t *)Ptr->PhysicalStart;
             Node = Node->Next;
+            Node->Addr = (u64)Node;
             Node->PageNum = (KERN_PHY - Ptr->PhysicalStart) >> 12;
 
             if (DeltaEnd > 0) {
@@ -60,6 +78,7 @@ void PMM_Init ()
 RangeBrk:
                 Node->Next = (FreeNode_t *)(KERN_PHY + KERN_ATC);
                 Node = Node->Next;
+                Node->Addr = (u64)Node;
                 Node->PageNum = (u64)DeltaEnd >> 12;
 
                 continue;
@@ -68,7 +87,54 @@ RangeBrk:
 
         Node->Next = (FreeNode_t *)Ptr->PhysicalStart;
         Node = Node->Next;
+        Node->Addr = (u64)Node;
         Node->PageNum = Ptr->NumberOfPages;
+    }
+
+    NewNode = (NewNode_t)EarlyNewNode;
+}
+
+/*
+   Will be called after the early initialization(`PMM_EarlyInit`);
+   Use new method to describe physical memory, this case uses `MallocK`.
+   So the first thing is making sure the old structure(_Free.Next) will
+   not be changed instead of filling it.
+*/
+void PMM_Init ()
+{
+    FreeNode_t *Old = &_Free,
+               *New = &_Free;
+
+    int c = 0, i = 0;
+    for (FreeNode_t *p = _Free.Next; p ;p = p->Next, c++) ;
+    void *Array[c];
+    for (i = 0; i < c ;i++)
+        Array[i] = MallocK (sizeof(FreeNode_t));
+
+    i = 0;
+    while (Old->Next && i < c) {
+        Old = Old->Next;
+
+        New->Next = Array[i++];
+        New = New->Next;
+
+        New->Addr = Old->Addr;
+        New->PageNum = Old->PageNum;
+    }
+
+    while (i < c)
+        FreeK (Array[i++]);
+
+    _PMM_SwitchMode ();
+
+    /* 接下来是回收 启动时服务 的内存空间 */
+    MAP_INFO *Info = _BootConfig.Memory.Map;
+    EFI_MEMORY_DESCRIPTOR *Ptr = Info->Maps + Info->DescSiz; // ...之前已经解释过了...
+    for (u64 i = 1;i < Info->MapCount;i++, Ptr = OFFSET(Ptr, Info->DescSiz))
+    {
+        if (Ptr->Type == EfiBootServicesData ||
+            Ptr->Type == EfiBootServicesCode)
+            PMM_FreePages ((void *)Ptr->PhysicalStart, Ptr->NumberOfPages);
     }
 }
 
@@ -85,14 +151,15 @@ void *PMM_AllocPages (size_t Num)
         if (Node->PageNum >= Num)
         {
             Node->PageNum -= Num;
-            Page = (void *)Node;
+            Page = (void *)Node->Addr;
 
             if (Node->PageNum == 0) {
                 Prev->Next = Node->Next; // 越过,销毁
             } else {
-                FreeNode_t *New = OFFSET(Node, Num * PAGE_SIZ); // 偏移 Node
+                FreeNode_t *New = NewNode (Node, Num);         // 设置 Node
 
                 New->Next = Node->Next;
+                New->Addr = Node->Addr + Num * PAGE_SIZ;
                 New->PageNum = Node->PageNum - Num;
 
                 Prev->Next = New;                              // 校正 Prev
@@ -123,8 +190,8 @@ static bool _PMM_IsFree (void *Page, size_t Num)
 
     do {
         Node = Node->Next;
-        Start = (u64)Node;
-        End   = (u64)Node + Node->PageNum * PAGE_SIZ;
+        Start = (u64)Node->Addr;
+        End   = (u64)Node->Addr + Node->PageNum * PAGE_SIZ;
 
         if (MAX(Start, (u64)Page) < MIN(End, (u64)Page + Num * PAGE_SIZ))
         {
@@ -148,25 +215,27 @@ void PMM_FreePages (void *Page,size_t Num)
     do {
         Node = Node->Next;
 
-        if ((u64)Node == (u64)Page + Num * PAGE_SIZ) // Head
+        if ((u64)Node->Addr == (u64)Page + Num * PAGE_SIZ) // Head
         {
-            FreeNode_t *New = Page;
+            FreeNode_t *New = NewNode (Page, 0);
 
             New->PageNum = Node->PageNum + Num;
+            New->Addr = (u64)Page;
             New->Next = Node->Next;
             Prev->Next = New;
             break;
         }
-        else if ((u64)Node + Node->PageNum * PAGE_SIZ == (u64)Page) // Tail
+        else if ((u64)Node->Addr + Node->PageNum * PAGE_SIZ == (u64)Page) // Tail
         {
             Node->PageNum += Num;
             break;
         }
-        else if ((u64)Node < (u64)Page && (u64)Node->Next > (u64)Page) // Another case
+        else if ((u64)Node->Addr < (u64)Page && (u64)Node->Next > (u64)Page) // Another case
         {
-            FreeNode_t *New = Page;
+            FreeNode_t *New = NewNode (Page, 0);
 
             New->PageNum = Num;
+            New->Addr = (u64)Page;
             New->Next = Node->Next;
 
             Node->Next = New;

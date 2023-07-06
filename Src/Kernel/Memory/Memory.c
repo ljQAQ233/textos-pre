@@ -4,14 +4,19 @@ u64 MemoryTotal;
 u64 PagesTotal;
 
 extern void PMM_Init ();
-extern void VMMapInit ();
+extern void PMM_EarlyInit ();
+extern void VMMap_Init ();
+extern void VMMap_EarlyInit ();
 
-extern void HeapInit ();
+extern void Heap_Init ();
 
 void MemoryInit ()
 {
-    PMM_Init();
-    VMMapInit();
+    PMM_EarlyInit();  // 早期初始化
+    VMMap_EarlyInit();
 
-    HeapInit();
+    Heap_Init();
+    PMM_Init();       // 总不可能把它抛弃了吧...
+
+    VMMap_Init();
 }

@@ -38,7 +38,7 @@ static Heap_t _Heap = {NULL, NULL, NULL};
 static void _Merge (Block_t *Hdr);
 static void _ExtendHeap (size_t Siz);
 
-void HeapInit ()
+void Heap_Init ()
 {
     Block_t *Heap = PMM_AllocPages (HEAP_ORIG); // 分配初始页,总不可能让指针们踩空吧......
 
