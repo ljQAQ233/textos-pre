@@ -56,3 +56,8 @@ void ScreenClear ()
         *p++ = 0;
     }
 }
+
+void __Graphics_SwitchMode ()
+{
+    FrameBuffer = (u32 *)KERN_FB;
+}
