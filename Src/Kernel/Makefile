@@ -9,6 +9,7 @@ SRCS := Init.c Main.c Debug.c Assert.c Panic.c
 
 include Init/Init.mk
 include Dev/Dev.mk
+include Memory/Memory.mk
 include Console/Console.mk
 include Graphics/Graphics.mk
 

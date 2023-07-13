@@ -5,16 +5,24 @@
 
 extern void InitializeGdt ();
 extern void InitializeIdt ();
+extern void MemoryInit ();
 
-#include <TextOS/Panic.h>
+#include <TextOS/Memory.h>
 
 void KernelMain ()
 {
     ConsoleInit();
     SerialInit();
 
-    PANIC ("Panic test\n");
-
     InitializeGdt();
     InitializeIdt();
+
+    MemoryInit();
+
+    void *Page;
+
+    Page = PMM_AllocPages (1);
+    PMM_FreePages(Page, 1);
+    Page = PMM_AllocPages (5);
+    PMM_FreePages(Page, 6);
 }

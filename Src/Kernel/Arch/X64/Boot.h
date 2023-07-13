@@ -9,9 +9,23 @@ typedef struct {
 } GRAPHICS_CONFIG;
 
 typedef struct {
+  VOID   *Map;
+} MEMORY_CONFIG;
+
+typedef struct {
   UINT64          Magic;
   GRAPHICS_CONFIG Graphics;
+  MEMORY_CONFIG   Memory;
 } BOOT_CONFIG;
+
+typedef struct {
+  VOID    *Maps;
+  UINTN   MapSiz;
+  UINTN   MapCount;
+  UINTN   MapKey;
+  UINTN   DescSiz;
+  UINT32  DescVersion;
+} MAP_INFO;
 
 extern BOOT_CONFIG _BootConfig;
 
