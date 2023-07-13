@@ -16,9 +16,23 @@ typedef struct {
 } GRAPHICS_CONFIG;
 
 typedef struct {
+  VOID   *Map;
+} MEMORY_CONFIG;
+
+typedef struct {
   GRAPHICS_CONFIG Graphics;
+  MEMORY_CONFIG   Memory;
   ARGS_STACK      Args;
 } BOOT_CONFIG;
+
+typedef struct {
+  VOID    *Maps;
+  UINTN   MapSiz;
+  UINTN   MapCount;
+  UINTN   MapKey;
+  UINTN   DescSiz;
+  UINT32  DescVersion;
+} MAP_INFO;
 
 extern BOOT_CONFIG _BootConfig;
 

@@ -5,12 +5,15 @@
 
 /* Tools like MAX and MIN */
 #define MAX(A,B) \
-    (A > B) ? A : B
+    (((A) > (B)) ? (A) : (B))
 #define MIN(A,B) \
-    (A < B) ? A : B
+    (((A) < (B)) ? (A) : (B))
 
 #define ABS(Num) \
-    (Num > 0) ? (Num) : (-Num)
+    (((Num) > 0) ? (Num) : (-Num))
+
+#define OFFSET(Ptr, Offset) \
+    ((void *)(Ptr) + (Offset))
 
 /* The Bool Type Value */
 #define true     (1 == 1)
@@ -28,6 +31,8 @@
 #define VOID     void   
 
 #define NULL     (VOID*)0
+
+#define PAGE_SIZ 0x1000
 
 #endif
 
