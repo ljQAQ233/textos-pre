@@ -26,15 +26,19 @@ typedef struct FreeNode FreeNode_t;
 static FreeNode_t _Free;
 
 typedef void * (*NewNode_t) (void *Node, size_t Num);
+typedef void   (*DelNode_t) (void *Node);
 /*
    Ways to allocate memory for nodes:
    1. Put FreeNode in free pages directly
    2. MallocK!!!
 */
 static NewNode_t NewNode;
+static DelNode_t DelNode;
 static void *EarlyNewNode (void *Node, size_t Num) { return Node + Num * PAGE_SIZ; }
 static void *AfterNewNode (void *Node, size_t Num) { return MallocK (sizeof(FreeNode_t)); }
-static void _PMM_SwitchMode () { NewNode = AfterNewNode; }
+static void EarlyDelNode (void *Node) {};
+static void AfterDelNode (void *Node) { FreeK (Node); }
+static void _PMM_SwitchMode () { NewNode = AfterNewNode; DelNode = AfterDelNode; }
 
 void PMM_EarlyInit ()
 {
@@ -92,6 +96,7 @@ RangeBrk:
     }
 
     NewNode = (NewNode_t)EarlyNewNode;
+    DelNode = (DelNode_t)EarlyDelNode;
 }
 
 /*
@@ -138,6 +143,64 @@ void PMM_Init ()
     }
 }
 
+static void _PMM_AllocHard (void *Page)
+{
+    FreeNode_t *Node = &_Free;
+    FreeNode_t *Prev = &_Free;
+    do {
+        Node = Node->Next;
+
+        if ((u64)Page == Node->Addr) {
+            if (Node->PageNum == 1) {
+                Prev->Next = Node->Next;
+                break;
+            }
+            FreeNode_t *New = NewNode (Node, 1);
+
+            New->Addr = Node->Addr + PAGE_SIZ;
+            New->Next = Node->Next;
+            New->PageNum = Node->PageNum - 1;
+
+            Prev->Next = New;
+            DelNode (Node);
+            break;
+        } else if ((u64)Page == Node->Addr + Node->PageNum * PAGE_SIZ) {
+            Node->PageNum--;
+            if (Node->PageNum == 0) {
+                Prev->Next = Node->Next;
+                DelNode (Node);
+            }
+            break;
+        } else if (Node->Addr < (u64)Page 
+                    && (u64)Page < Node->Addr + Node->PageNum * PAGE_SIZ) {
+            u64 PgOffset = ((u64)Page - Node->Addr) / PAGE_SIZ;
+            FreeNode_t *New = NewNode (Node, PgOffset + 1);
+
+            New->Addr = (u64)Page + PAGE_SIZ;
+            New->PageNum = Node->PageNum - PgOffset - 1;
+            New->Next = Node->Next;
+
+            Node->Next = New;
+            Node->PageNum = PgOffset;
+
+            break;
+        }
+
+        Prev = Prev->Next;
+    } while (Node->Next);
+}
+
+void PMM_AllocHard (void *Page, size_t Num)
+{
+    Page = (void*)((u64)Page &~ 0x7ff); // 抹掉低位
+
+    DEBUGK ("Try to allocate pages(force) ! - %p\n", Page);
+    while (Num--) {
+        _PMM_AllocHard (Page);
+        Page += PAGE_SIZ;
+    }
+}
+
 /* 获取 Num 页的内存,没有则返回 NULL */
 void *PMM_AllocPages (size_t Num)
 {
@@ -155,6 +218,7 @@ void *PMM_AllocPages (size_t Num)
 
             if (Node->PageNum == 0) {
                 Prev->Next = Node->Next; // 越过,销毁
+                DelNode (Node);
             } else {
                 FreeNode_t *New = NewNode (Node, Num);         // 设置 Node
 
@@ -163,6 +227,7 @@ void *PMM_AllocPages (size_t Num)
                 New->PageNum = Node->PageNum - Num;
 
                 Prev->Next = New;                              // 校正 Prev
+                DelNode (Node);
             }
 
             break;
