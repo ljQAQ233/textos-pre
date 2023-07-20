@@ -48,7 +48,10 @@ _IntrCaller:
     mov  rsi, rsp
     add  rsi, 17 * 8         ; Interrupt frame
     mov  rdx, rsp            ; Registers (may include ErrorCode)
-    call IntrCaller
+
+    mov  rax, IntrPtr
+    lea  rax, [rax + rdi * 8]
+    call [rax]
 
     pop  r15 ; 恢复寄存器
     pop  r14

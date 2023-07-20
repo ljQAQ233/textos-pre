@@ -53,7 +53,7 @@ static void _IdtSetEntry (size_t i,u64 Offset, u16 Selector, u8 Type, u8 DPL, u8
 #define _IDT_SET_ENTRY(i, Offset) \
     _IdtSetEntry (i, Offset, SELE_KERN, GATE_INT, 0, 1)
 
-static IntrCaller_t IntrPtr[IDT_MAX];
+IntrCaller_t IntrPtr[IDT_MAX];
 
 static char *ExptMessage[] = {
     "#DE Divide Error\0",
@@ -81,8 +81,9 @@ static char *ExptMessage[] = {
     "--- Intel reserved. Do not use\0",
 };
 
-void IntrCaller (u8 Vector, IntrFrame_t *Intr, RegFrame_t *Reg)
+void IntrCommon (u8 Vector, IntrFrame_t *Intr, RegFrame_t *Reg)
 {
+    PrintK ("--------------------------------\n");
     PrintK ("Interrupt occurred !!! - %03x -> %s\n", Vector ,ExptMessage[Vector < 22 ? Vector : 22]);
     PrintK ("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx\n", Reg->rax, Reg->rbx, Reg->rcx, Reg->rdx);
     PrintK ("RSI=%016llx RDI=%016llx RBP=%016llx RSP=%016llx\n", Reg->rsi, Reg->rdi, Reg->rbp, Intr->rsp);
@@ -92,10 +93,6 @@ void IntrCaller (u8 Vector, IntrFrame_t *Intr, RegFrame_t *Reg)
     PrintK ("--------------------------------\n");
     PrintK ("RIP=%016llx RFL=%08llx\n", Intr->rip, Intr->rflags);
     PrintK ("--------------------------------\n");
-
-    if (IntrPtr[Vector] && Vector < 22) {
-        IntrPtr[Vector](Vector, Intr, Reg);
-    }
 }
 
 extern u8 IntrEntries; // a start point of the whole table
@@ -109,7 +106,7 @@ void InitializeIdt ()
     for (size_t i = 0; i < IDT_MAX; i++)
     {
         _IDT_SET_ENTRY (i, (u64)(&IntrEntries + IHT_SIZ * i));
-        IntrPtr[i] = (IntrCaller_t)NULL;
+        IntrPtr[i] = (IntrCaller_t)IntrCommon;
     }
 
     Idtr.Base = (u64)&Idts;
