@@ -138,6 +138,14 @@ typedef struct _packed {
 extern void *LApic;
 extern void *IOApic;
 
+static u8 _Gsi[24];
+
+/* Src 到 Gsi 的过程类似于一个重定向的过程 */
+u8 __GsiGet (u8 Src)
+{
+    return _Gsi[Src] != 0xFF ? _Gsi[Src] : Src;
+}
+
 void MadtParser ()
 {
     Madt_t *Madt = _EntryGet (APIC_SIG);
@@ -146,6 +154,8 @@ void MadtParser ()
     
     int64 Len = Madt->Hdr.Length - sizeof(Madt_t);
     MadtIcs_t *Ics = OFFSET (Madt, sizeof(Madt_t));
+
+    memset (_Gsi, 0xFF, 24);
 
     while (Len > 0) {
         switch (Ics->Type)
@@ -179,6 +189,7 @@ void MadtParser ()
                 PrintK ("Intr Src Override -> Bus : %u, Src : %u, Flgs : %x\n"
                         "                     Global sys intr : %u\n",
                         _Iso->Bus,_Iso->Src,_Iso->Flgs,_Iso->Gsi);
+                _Gsi[_Iso->Src] = _Iso->Gsi;
             }
         break;
         }
