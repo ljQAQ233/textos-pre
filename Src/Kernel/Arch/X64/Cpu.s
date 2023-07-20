@@ -67,6 +67,25 @@ WriteCr3:
     mov cr3, rdi
     ret
 
+; u64 ReadMsr (u32 Idx);
+global ReadMsr
+ReadMsr:           ; EDX:EAX := MSR[ECX]
+    mov ecx, edi   ; 所以,我们使用 ecx 作为 Idx
+    rdmsr
+    shl rdx, 32    ; edx 作高位
+    or  rax, rdx   ; 储存在 rax 直接成返回值
+    ret
+
+; void WriteMsr (u32 Idx, u64 Value);
+global WriteMsr
+WriteMsr:
+    mov ecx, edi   ; MSR[ECX] := EDX:EAX
+    mov eax, esi
+    shr rsi, 32
+    mov edx, esi
+    wrmsr
+    ret
+
 ; void __StackInit ();
 global __StackInit
 __StackInit:

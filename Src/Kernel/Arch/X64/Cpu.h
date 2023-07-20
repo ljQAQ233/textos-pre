@@ -35,4 +35,10 @@ u64 ReadCr3 ();
 
 u64 WriteCr3 ();
 
+#define IA32_APIC_BASE 0x1B
+
+u64 ReadMsr (u32 Idx);
+
+void WriteMsr (u32 Idx, u64 Value);
+
 #endif

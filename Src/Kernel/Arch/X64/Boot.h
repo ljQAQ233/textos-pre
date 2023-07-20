@@ -16,6 +16,7 @@ typedef struct {
   UINT64          Magic;
   GRAPHICS_CONFIG Graphics;
   MEMORY_CONFIG   Memory;
+  VOID            *AcpiTab;
 } BOOT_CONFIG;
 
 typedef struct {

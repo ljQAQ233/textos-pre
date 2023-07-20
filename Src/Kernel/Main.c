@@ -4,12 +4,13 @@
 #include <TextOS/Dev/Serial.h>
 #include <TextOS/Debug.h>
 
+extern void InitializeAcpi ();
+extern void InitializeApic ();
 extern void InitializeGdt ();
 extern void InitializeIdt ();
 extern void MemoryInit ();
 
-#include <TextOS/Memory.h>
-#include <TextOS/Memory/Map.h>
+#include <Irq.h>
 
 void KernelMain ()
 {
@@ -19,7 +20,12 @@ void KernelMain ()
     InitializeGdt();
     InitializeIdt();
 
+    InitializeAcpi();
+    InitializeApic();
+
     MemoryInit();
-    
-    DEBUGK ("Test graphic module\n");
+
+    IntrStateEnable();
+
+    while (true);
 }

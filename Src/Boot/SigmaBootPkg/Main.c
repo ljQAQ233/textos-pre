@@ -4,6 +4,9 @@
 #include <Library/UefiLib.h>
 #include <Library/MemoryAllocationLib.h>
 
+#include <Guid/Acpi.h>
+#include <IndustryStandard/Acpi.h>
+
 #include <Boot/Boot.h>
 #include <Boot/File.h>
 #include <Boot/Logo.h>
@@ -27,6 +30,7 @@ typedef struct {
   UINT64          Magic;
   GRAPHICS_CONFIG Graphics;
   MEMORY_CONFIG   Memory;
+  VOID            *AcpiTab;
 } BOOT_CONFIG;
 
 /* From tanyugang's Code,and I modified it,very thanks! */
@@ -75,6 +79,8 @@ EFI_STATUS EFIAPI UefiMain (
     CHAR16 *FontPath = ConfigGetStringChar16 ("Font", D_FONT_PATH);
     FONT_CONFIG *Font = AllocateZeroPool (sizeof (FONT_CONFIG));
     FontLoad (FontPath,Font);
+
+    EfiGetSystemConfigurationTable (&gEfiAcpi20TableGuid, &Config->AcpiTab);
 
     MAP_INFO *Map = AllocateZeroPool (sizeof (MAP_INFO));
 

@@ -150,6 +150,7 @@ void VMMap_Umap (u64 Vrt, size_t Num, int Mode)
 #include <Boot.h>
 
 extern void __ConfigSave ();
+extern void __Apic_SwitchMode ();
 extern void __Graphics_SwitchMode ();
 
 void VMMap_EarlyInit ()
@@ -169,6 +170,7 @@ void VMMap_EarlyInit ()
            );
 
     // As callback functions
+    __Apic_SwitchMode();
     __Graphics_SwitchMode();
 }
 
