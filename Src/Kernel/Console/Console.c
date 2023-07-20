@@ -15,8 +15,6 @@ void ConsoleInit ()
     Console.Row = Hor / Font->Width;
     Console.Col = Ver / Font->Height;
 
-    Console.Font = Font;
-
     Console.BGColor = 0x00000000;
     Console.FGColor = 0x00ffffff;
 }

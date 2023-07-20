@@ -13,7 +13,6 @@ struct _CONSOLE
     u16 CurY;   /* Cursor address Y */
     u32 FGColor;
     u32 BGColor;
-    FontInfo_t *Font;
 };
 
 typedef struct _CONSOLE Console_t;

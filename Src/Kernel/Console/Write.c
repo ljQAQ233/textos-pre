@@ -28,14 +28,14 @@ static int ConsoleWriteChar (char Char)
         ConsoleClear();
     }
 
-    u16 X = Console.CurX * Console.Font->Width;
-    u16 Y = Console.CurY * Console.Font->Height;
+    u16 X = Console.CurX * Font->Width;
+    u16 Y = Console.CurY * Font->Height;
 
     Console.CurX++;
 
     return FontShow (
         Char,
-        Console.Font,
+        Font,
         X,Y,Console.FGColor,Console.BGColor
         );
 }
