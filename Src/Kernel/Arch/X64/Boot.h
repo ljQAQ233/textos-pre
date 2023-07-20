@@ -22,6 +22,7 @@ typedef struct {
 typedef struct {
   GRAPHICS_CONFIG Graphics;
   MEMORY_CONFIG   Memory;
+  VOID            *AcpiTab;
   ARGS_STACK      Args;
 } BOOT_CONFIG;
 

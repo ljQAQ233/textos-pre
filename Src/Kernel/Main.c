@@ -4,6 +4,7 @@
 #include <TextOS/Dev/Serial.h>
 #include <TextOS/Debug.h>
 
+extern void InitializeAcpi ();
 extern void InitializeGdt ();
 extern void InitializeIdt ();
 extern void MemoryInit ();
@@ -18,6 +19,8 @@ void KernelMain ()
 
     InitializeGdt();
     InitializeIdt();
+
+    InitializeAcpi();
 
     MemoryInit();
     
