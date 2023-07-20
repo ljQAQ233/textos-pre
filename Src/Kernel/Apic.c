@@ -1,14 +1,14 @@
 #include <IO.h>
+#include <Cpu.h>
+#include <Irq.h>
+#include <Intr.h>
+#include <TextOS/Dev/8259.h>
 
-#define MPIC_DATA 0x21
-#define SPIC_DATA 0xA1
+#include <TextOS/Panic.h>
+#include <TextOS/Memory.h>
+#include <TextOS/Memory/Map.h>
 
-void PicDisable ()
-{
-    OutB (SPIC_DATA, 0xFF);
-    OutB (MPIC_DATA, 0xFF);
-}
-
+/* LApiC's registers */
 #define LAPIC_ID   0x20
 #define LAPIC_VER  0x30
 #define LAPIC_TPR  0x80
@@ -35,23 +35,68 @@ void PicDisable ()
 #define LAPIC_TCCR 0x390  // Current Counter Register for timer
 #define LAPIC_DCR  0x3E0  // Divide Configuration Register for timer
 
-#define LAPIC_PA 0xFEE00000ULL
-#define LAPIC_VA 0xFFFF80000A000000ULL
+#define LVT_MASK (1 << 16)
 
-#define PUT()
+#define LAPIC_VA  0xFFFFFF0000008000ULL
+#define IOAPIC_VA 0xFFFFFF0000000000ULL
 
-void *LApic = (void *)LAPIC_PA;
+void *LApic = NULL;
+void *IOApic = NULL;
 
-#include <TextOS/Memory/Map.h>
+#define LAPIC_GET(Reg)         (*((u32 *)(LApic + Reg)))
+#define LAPIC_SET(Reg, Val)    (*((u32 *)(LApic + Reg)) = (u32)(Val))
+
+#define S_TPR(TC, TSC)         ((u32)TC << 4 | (u32)TSC)
+#define S_SVR(Stat, Vector)    ((((u32)Stat & 1) << 8) | ((u32)Vector & 0xFF))
 
 void __Apic_SwitchMode ()
 {
-    VMMap (LAPIC_PA, LAPIC_VA, 4, PE_RW |PE_P, MAP_4K);
+    VMMap ((u64)LApic, LAPIC_VA, 1, PE_RW | PE_P, MAP_4K);
+    VMMap ((u64)IOApic, IOAPIC_VA, 1, PE_RW | PE_P, MAP_4K);
 
     LApic = (void *)LAPIC_VA;
+    IOApic = (void *)IOAPIC_VA;
 }
 
+void LApicErrHandler () { PANIC ("Apic Handler is not supported!!!"); }
+void LApicSpuriousHandler () { ; }
+
+/* Apic 不可以启动再禁用后再启动, 除非重启机器 */
 void InitializeApic ()
 {
-    PicDisable(); // 这是废话,大家不要理它...
+    if (LApic == NULL || IOApic == NULL)
+        PANIC ("Invalid LApic or IOApic. Is not detected\n");
+
+    PicDisable(); // 某种意义上,这是废话,大家不要理它...
+
+    WriteMsr (IA32_APIC_BASE, ((u64)LApic << 12) | (1 << 11));
+
+    IntrRegister (INT_LAPIC_ERR, (IntrCaller_t)LApicErrHandler);
+    IntrRegister (INT_LAPIC_SPS, (IntrCaller_t)LApicSpuriousHandler);
+
+    LAPIC_SET(LAPIC_ERR, 129);
+
+    LAPIC_SET(LAPIC_ESR, 0);
+    LAPIC_SET(LAPIC_ESR, 0);
+
+    LAPIC_SET(LAPIC_TPR, S_TPR(0, 0));
+    LAPIC_SET(LAPIC_SVR, S_SVR(true, INT_LAPIC_SPS));  // APIC Software Enable
 }
+
+void LApic_SendEOI ()
+{
+    LAPIC_SET (LAPIC_EOI, 0);
+}
+
+void IOApicRteSet (u8 Irq, u64 Rte)
+{
+    u32 *RegSel = (u32 *)(IOApic);
+    u32 *Data   = (u32 *)(IOApic + 0x10);
+
+    *RegSel = Irq * 2 + 0x10;
+    *Data = Rte & 0xFFFFFFFF;
+
+    *RegSel = Irq * 2 + 0x10 + 1;
+    *Data = Rte >> 32;
+}
+
