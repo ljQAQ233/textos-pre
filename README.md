@@ -20,10 +20,11 @@
 - Src
    - Base    开发资源
    - Boot    基于EDKII项目改,使用Makefile
+     - Edk2 Edk2 项目子模块
+     - SigmaBootPkg Boot源码
    - Config  Makefile配置
    - Include 头文件目录
       - Boot SigmaBootPkg的头文件
-   - SigmaBootPkg Boot源码
    - Utils   工具
 
 ---
