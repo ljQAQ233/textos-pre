@@ -9,6 +9,8 @@
 Build
 .cache
 
+Src/Config/Private.mk
+
 Src/Utils/compile_commands.json
 
 .vscode/settings.json

@@ -1,4 +1,4 @@
-UDK_DBG_HOME := /opt/udkdebugger
+UDK_DBG_HOME := /opt/intel/udkdebugger
 # the Root directory of Software UdkDebugger we have installed before
 UDK_DBG_CFG  := /etc/udkdebugger.conf
 # the Config file for udkdebugger

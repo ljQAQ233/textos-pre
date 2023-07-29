@@ -18,6 +18,8 @@ all: _BootUpdate Image
 
 include Config/Qemu.mk
 
+include Config/Private.mk
+
 .PHONY: Boot
 Boot:
 	@echo -e "Start to Compile Boot Module...\n"
@@ -27,6 +29,8 @@ Boot:
 ovmf:
 	@echo -e "Start to Compile OVMF...\n"
 	@make -C Boot TARGET=RELEASE Ovmf
+	@make -C Boot TARGET=DEBUG FLAGS="-DDEBUG_ON_SERIAL_PORT=TRUE" Ovmf
+	@make -C Boot TARGET=NOOPT FLAGS="-DDEBUG_ON_SERIAL_PORT=TRUE -DSOURCE_DEBUG_ENABLE=TRUE" Ovmf
 	@echo -e "OVMF is up-to-date\n"
 
 .PHONY: Image

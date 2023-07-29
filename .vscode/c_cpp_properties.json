@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/Src/Include",
-                "${workspaceFolder}/Src/Boot/MdePkg/Include"
+                "${workspaceFolder}/Src/Boot/Edk2/MdePkg/Include"
             ],
             "defines": [],
             "compileCommands": "${workspaceFolder}/Src/Utils/compile_commands.json"
