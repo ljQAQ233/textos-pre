@@ -88,8 +88,12 @@ void LApic_SendEOI ()
     LAPIC_SET (LAPIC_EOI, 0);
 }
 
+extern u8 __GsiGet (u8 Src);
+
 void IOApicRteSet (u8 Irq, u64 Rte)
 {
+    Irq = __GsiGet (Irq);  // 向 Acpi 查询是否存在 Src -> Gsi
+
     u32 *RegSel = (u32 *)(IOApic);
     u32 *Data   = (u32 *)(IOApic + 0x10);
 
