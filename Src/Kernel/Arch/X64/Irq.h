@@ -4,6 +4,9 @@
 #define INT_LAPIC_ERR 129 // Error handler
 #define INT_LAPIC_SPS 130 // Spurious handler
 
+#define IRQ_TIMER 0
+#define INT_TIMER 0x20
+
 #define IRQ_KEYBOARD 1
 #define INT_KEYBOARD 0x21
 
