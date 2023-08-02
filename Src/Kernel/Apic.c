@@ -43,8 +43,8 @@
 void *LApic = NULL;
 void *IOApic = NULL;
 
-#define LAPIC_GET(Reg)         (*((u32 *)(LApic + Reg)))
-#define LAPIC_SET(Reg, Val)    (*((u32 *)(LApic + Reg)) = (u32)(Val))
+#define LAPIC_GET(Reg)         (*((u32 volatile *)(LApic + Reg)))
+#define LAPIC_SET(Reg, Val)    (*((u32 volatile *)(LApic + Reg)) = (u32)(Val))
 
 #define S_TPR(TC, TSC)         ((u32)TC << 4 | (u32)TSC)
 #define S_SVR(Stat, Vector)    ((((u32)Stat & 1) << 8) | ((u32)Vector & 0xFF))
@@ -80,7 +80,7 @@ void InitializeApic ()
     LAPIC_SET(LAPIC_ESR, 0);
 
     LAPIC_SET(LAPIC_TPR, S_TPR(0, 0));
-    LAPIC_SET(LAPIC_SVR, S_SVR(true, INT_LAPIC_SPS));  // APIC Software Enable
+    LAPIC_SET(LAPIC_SVR, S_SVR(true, INT_LAPIC_SPS));  // 软启用 Apic / APIC Software Enable
 }
 
 void LApic_SendEOI ()
