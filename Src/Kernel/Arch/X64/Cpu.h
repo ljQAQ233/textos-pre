@@ -2,6 +2,7 @@
 #define __CPU_H__
 
 typedef struct IntrFrame {
+  u64 ErrorCode;
   u64 rip;
   u64 cs;
   u64 rflags;
@@ -16,7 +17,6 @@ typedef struct RegFrame {
   u64 rdi, rsi;
   u64 rbp;
   u64 rdx, rcx, rbx, rax;
-  u64 ErrorCode;
 } RegFrame_t;
 
 void ReadGdt (void *Gdtr);
