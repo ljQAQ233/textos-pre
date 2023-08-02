@@ -49,6 +49,12 @@ void *IOApic = NULL;
 #define S_TPR(TC, TSC)         ((u32)TC << 4 | (u32)TSC)
 #define S_SVR(Stat, Vector)    ((((u32)Stat & 1) << 8) | ((u32)Vector & 0xFF))
 
+#define S_TM(Mode, Vector) ((((u32)Mode & 0b11) << 17 | (u8)Vector))
+
+#define TM_ONESHOT  0b00 // One-Shot Mode
+#define TM_PERIODIC 0b01 // Periodic Mode 周期模式
+#define TM_TSCDLN   0b10 // TSC-Deadline Mode
+
 void __Apic_SwitchMode ()
 {
     VMMap ((u64)LApic, LAPIC_VA, 1, PE_RW | PE_P, MAP_4K);
@@ -60,6 +66,23 @@ void __Apic_SwitchMode ()
 
 void LApicErrHandler () { PANIC ("Apic Handler is not supported!!!"); }
 void LApicSpuriousHandler () { ; }
+
+#include <TextOS/Console/PrintK.h>
+
+u64 volatile Slice = 0;
+
+__INTR_FUNC(TimerHandler)
+{
+    LApic_SendEOI();
+
+    Slice++;
+
+    if (Slice % 100 == 0) {
+        PrintK ("One second!!!\n");
+    }
+}
+
+#include <TextOS/Dev/Pit.h>
 
 /* Apic 不可以启动再禁用后再启动, 除非重启机器 */
 void InitializeApic ()
@@ -81,6 +104,16 @@ void InitializeApic ()
 
     LAPIC_SET(LAPIC_TPR, S_TPR(0, 0));
     LAPIC_SET(LAPIC_SVR, S_SVR(true, INT_LAPIC_SPS));  // 软启用 Apic / APIC Software Enable
+
+    LAPIC_SET(LAPIC_TM, S_TM(TM_ONESHOT, 0) | LVT_MASK); // 屏蔽 Apic Timer 的本地中断
+    LAPIC_SET(LAPIC_DCR, 0b0000);                        // 设置 除数 (因子) 为 2
+    LAPIC_SET(LAPIC_TICR, 0xFFFFFFFF);                   // 设置 初始计数到最大 (-1)
+
+    PitSleep (10);
+
+    LAPIC_SET(LAPIC_TICR, 0xFFFFFFFF - LAPIC_GET(LAPIC_TCCR)); // 计算 100ms 的 ticks
+    LAPIC_SET(LAPIC_TM, S_TM(TM_PERIODIC, INT_TIMER));         // 步入正轨, 每 100ms 产生一次时钟中断
+    IntrRegister (INT_TIMER, TimerHandler);                    // 注册中断函数
 }
 
 void LApic_SendEOI ()
