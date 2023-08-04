@@ -10,7 +10,7 @@ OVMF_NOOPT  = $(BASE)/OVMF_NOOPT_$(ARCH).fd
 
 MEM = 64M
 
-QEMU_FLAGS := -hda $(IMG_OUTPUT) \
+QEMU_FLAGS := -drive format=raw,media=disk,file=$(IMG_OUTPUT) \
 			   -net none \
 			   -m $(MEM) \
 			   -no-reboot
@@ -18,7 +18,7 @@ QEMU_FLAGS := -hda $(IMG_OUTPUT) \
 # Qemu Common Args
 
 QEMU_FLAGS_RUN  := $(QEMU_FLAGS) \
-			   -bios $(OVMF)
+			   -drive format=raw,if=pflash,file=$(OVMF)
 
 QEMU_FLAGS_DBG  := $(QEMU_FLAGS) \
 #			   -d int,cpu_reset
@@ -30,11 +30,11 @@ ifeq (${QEMU_GPY},false)
 endif
 
 QEMU_FLAGS_BDBG  := $(QEMU_FLAGS_DBG) \
-			   -bios $(OVMF_NOOPT) \
+			   -drive format=raw,if=pflash,file=$(OVMF_NOOPT) \
 			   -serial pipe:$(PIPE)
 
 QEMU_FLAGS_KDBG  := $(QEMU_FLAGS_DBG) \
-			   -bios $(OVMF) \
+			   -drive format=raw,if=pflash,file=$(OVMF) \
 			   -s -S \
 			   -serial stdio
 
