@@ -160,7 +160,10 @@ void VMMap_EarlyInit ()
 
     // Set pgt into vrt mode
     PML4 = _ReEntryGet(0, L_PML4);
+}
 
+void VMMap_Init ()
+{
     /* After set recursive pagetable, we can use VMMap to set mapping by recursive way, even if
        we haven't remove the PML4Es for user space, that's ident mapping of physical memory     */
 
@@ -173,10 +176,7 @@ void VMMap_EarlyInit ()
     __Apic_SwitchMode();
     __Graphics_SwitchMode();
     __ConfigSave();
-}
 
-void VMMap_Init ()
-{
     for (int i = 0; i < 256 ;i++) {
         PML4[i] &= ~PE_P;
     }
