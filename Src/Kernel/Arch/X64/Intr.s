@@ -46,7 +46,7 @@ _IntrCaller:
 
     mov  rdi, [rsp + 15 * 8] ; Vector
     mov  rsi, rsp
-    add  rsi, 16 * 8         ; Interrupt frame
+    add  rsi, 17 * 8         ; Interrupt frame
     mov  rdx, rsp            ; Registers (may include ErrorCode)
 
     mov  rax, IntrPtr
