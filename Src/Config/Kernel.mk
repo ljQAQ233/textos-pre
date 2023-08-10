@@ -28,7 +28,7 @@ ifeq (${DEBUG},true)
 endif
 
 # Nasm flags
-NFLAGS   := -f elf64
+NFLAGS   := -f elf64 -g
 
 LDFLAGS  := -static
 LDFLAGS  += -nostdlib
