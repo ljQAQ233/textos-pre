@@ -24,7 +24,7 @@ int VMM_CaAdjust (u64 *Vrt)
 
 void *VMM_PhyAuto (u64 Vrt, size_t Num, u16 Flgs)
 {
-    ASSERTK (!(Vrt & 0xFFFF) && Vrt != 0); // 确保它不是 NULL 并且是一页开始的地方
+    ASSERTK (!(Vrt & 0xFFF) && Vrt != 0); // 确保它不是 NULL 并且是一页开始的地方
 
     if (!VMM_CaAdjust (&Vrt)) {
         DEBUGK ("The addr is not a canonical addr, adjust it - %p\n",Vrt);
