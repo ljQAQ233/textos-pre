@@ -45,9 +45,10 @@ _IntrCaller:
     push  r15
 
     mov  rdi, [rsp + 15 * 8] ; Vector
-    mov  rsi, rsp
-    add  rsi, 17 * 8         ; Interrupt frame
-    mov  rdx, rsp            ; Registers (may include ErrorCode)
+    mov  rsi, [rsp + 16 * 8] ; ErrorCode
+    mov  rdx, rsp
+    add  rdx, 17 * 8         ; Interrupt frame
+    mov  rcx, rsp            ; Registers
 
     mov  rax, IntrPtr
     lea  rax, [rax + rdi * 8]

@@ -81,7 +81,7 @@ static char *ExptMessage[] = {
     "--- Intel reserved. Do not use\0",
 };
 
-void IntrCommon (u8 Vector, IntrFrame_t *Intr, RegFrame_t *Reg)
+__INTR_FUNC (IntrCommon)
 {
     PrintK ("--------------------------------\n");
     PrintK ("Interrupt occurred !!! - %03x -> %s\n", Vector ,ExptMessage[Vector < 22 ? Vector : 22]);
@@ -93,6 +93,8 @@ void IntrCommon (u8 Vector, IntrFrame_t *Intr, RegFrame_t *Reg)
     PrintK ("--------------------------------\n");
     PrintK ("RIP=%016llx RFL=%08llx\n", Intr->rip, Intr->rflags);
     PrintK ("--------------------------------\n");
+    
+    while (true) ;
 }
 
 extern u8 IntrEntries; // a start point of the whole table
