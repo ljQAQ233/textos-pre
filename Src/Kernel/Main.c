@@ -10,6 +10,8 @@ extern void InitializeGdt ();
 extern void InitializeIdt ();
 extern void MemoryInit ();
 
+extern void TaskInit ();
+
 extern void KeyboardInit ();
 
 #include <Irq.h>
@@ -28,6 +30,8 @@ void KernelMain ()
     MemoryInit();
 
     KeyboardInit();
+
+    TaskInit();
 
     IntrStateEnable();
 

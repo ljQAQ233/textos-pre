@@ -5,7 +5,7 @@ ARCH_DIR = Arch/$(ARCH)
 
 export OUTPUT ARCH_DIR
 
-SRCS := Init.c Main.c Debug.c Assert.c Panic.c Acpi.c Apic.c
+SRCS := Init.c Main.c Debug.c Assert.c Panic.c Acpi.c Apic.c Task.c Task.s
 
 include Init/Init.mk
 include Dev/Dev.mk

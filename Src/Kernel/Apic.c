@@ -69,11 +69,14 @@ void LApicSpuriousHandler () { ; }
 
 u64 volatile Slice = 0;
 
+extern void TaskSwitch ();
+
 __INTR_FUNC(TimerHandler)
 {
     LApic_SendEOI();
 
     Slice++;
+    TaskSwitch();
 
     if (Slice % 100 == 0) {
         PrintK ("One second!!!\n");
