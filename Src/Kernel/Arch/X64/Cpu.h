@@ -16,7 +16,6 @@ typedef struct RegFrame {
   u64 rdi, rsi;
   u64 rbp;
   u64 rdx, rcx, rbx, rax;
-  u64 ErrorCode;
 } RegFrame_t;
 
 void Halt ();

@@ -39,11 +39,16 @@ static int ConsoleWriteChar (char Char)
     return Char;
 }
 
+#include <Irq.h>
+
 size_t ConsoleWrite (char *String)
 {
     char *Ptr;
-    for (Ptr = String ; Ptr && *Ptr ; Ptr++)
-        ConsoleWriteChar (*Ptr);
+
+    UNINTR_AREA ({
+        for (Ptr = String ; Ptr && *Ptr ; Ptr++)
+            ConsoleWriteChar (*Ptr);
+    });
 
     return (size_t)(Ptr - String);
 }

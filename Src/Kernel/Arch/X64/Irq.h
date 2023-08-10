@@ -16,6 +16,20 @@ void IntrStateEnable ();
 
 void IntrStateDisable ();
 
+#define UNINTR_AREA_START()                      \
+        bool __IntrStat__ = IntrStateGet();      \
+        IntrStateDisable();                      \
+
+#define UNINTR_AREA_END()                        \
+        if (__IntrStat__) IntrStateEnable();     \
+
+#define UNINTR_AREA(Opts)                            \
+        do {                                         \
+            UNINTR_AREA_START();                     \
+            Opts;                                    \
+            UNINTR_AREA_END();                       \
+        } while (false);                             \
+
 /* 接下来是 APIC 的舞台! */
 void LApic_SendEOI ();
 

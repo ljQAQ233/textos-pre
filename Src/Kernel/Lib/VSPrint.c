@@ -1,6 +1,8 @@
 #include <TextOS/TextOS.h>
 #include <TextOS/Args.h>
 
+#include <Irq.h>
+
 #define TMP_BUFFER_SIZE 64
 
 enum {
@@ -60,6 +62,8 @@ static int64 _Number (char *Buffer, u64 Num, int Base, bool Upper)
 
 int64 VSPrint (char *Buffer, const char *Format, va_list Args)
 {
+    UNINTR_AREA_START();
+
     char *Out = Buffer;
     char *Ptr = (char*)Format;
 
@@ -280,6 +284,8 @@ ParseArgs:
         Ptr++;
     }
     *Out = '\0';
+    
+    UNINTR_AREA_END();
 
     return (int64)(Out - Buffer);
 }

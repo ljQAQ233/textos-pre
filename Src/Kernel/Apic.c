@@ -67,10 +67,13 @@ void __Apic_SwitchMode ()
 void LApicErrHandler () { PANIC ("Apic Handler is not supported!!!"); }
 void LApicSpuriousHandler () { ; }
 
+extern void TaskSwitch ();
 
 __INTR_FUNC(TimerHandler)
 {
     LApic_SendEOI();
+
+    TaskSwitch();
 }
 
 #include <TextOS/Dev/Pit.h>
