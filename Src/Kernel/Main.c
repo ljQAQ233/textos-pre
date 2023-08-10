@@ -10,6 +10,8 @@ extern void InitializeGdt ();
 extern void InitializeIdt ();
 extern void MemoryInit ();
 
+extern void ClockInit ();
+
 extern void TaskInit ();
 
 extern void KeyboardInit ();
@@ -28,6 +30,8 @@ void KernelMain ()
     InitializeApic();
 
     MemoryInit();
+
+    ClockInit();
 
     KeyboardInit();
 
