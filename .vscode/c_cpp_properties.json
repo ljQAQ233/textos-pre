@@ -7,7 +7,12 @@
                 "${workspaceFolder}/Src/Include",
                 "${workspaceFolder}/Src/Boot/Edk2/MdePkg/Include"
             ],
-            "defines": [],
+            "defines": [
+                "__TEXTOS_DEBUG"
+            ],
+            "compilerArgs": [
+                "-include","${workspaceFolder}/Src/Include/TextOS/TextOS.h"
+            ],
             "compileCommands": "${workspaceFolder}/Src/Utils/compile_commands.json"
         }
     ],
