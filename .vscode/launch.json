@@ -43,8 +43,13 @@
                     "ignoreFailures": true
                 },
                 {
+                    "description": "Load environment",
+                    "text": "python import sys ; sys.path.append('/opt/udkdebugger/script')",
+                    "ignoreFailures": false
+                },
+                {
                     "description": "Load script for uefi debugging",
-                    "text": "source ${workspaceFolder}/Src/Utils/Udk/script/udk_gdb_script",
+                    "text": "source /opt/intel/udkdebugger/script/udk_gdb_script",
                     "ignoreFailures": false
                 },
                 {

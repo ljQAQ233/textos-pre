@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/Src/Include",
-                "${workspaceFolder}/Src/Boot/MdePkg/Include",
+                "${workspaceFolder}/Src/Boot/Edk2/MdePkg/Include",
+                "${workspaceFolder}/Src/Kernel/Arch/X64",
                 "${workspaceFolder}/Src/Include/TextOS/Stdlib"
             ],
             "defines": ["__TEXTOS_DEBUG"],
