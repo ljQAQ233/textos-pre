@@ -1,9 +1,9 @@
 /* CR MACRO (containing recore macro) makes it more meaningful! */
 
 /*
-  List 0                      List 1                 List x
+  list 0                      list 1                 list x
   +---------+----------+    +---------+----------+
-  | Forward | Backward | <- | Forward | Backward | <- ... <- List 0
+  | Forward | Backward | <- | Forward | Backward | <- ... <- list 0
   +---------+----------+    +---------+----------+
 */
 
@@ -16,7 +16,7 @@ void list_init (list_t *list)
     list->back = list;
 }
 
-void ListInsert (list_t *list, list_t *new)
+void list_insert (list_t *list, list_t *new)
 {
     new->forward = list;
     new->back = list->back;
@@ -25,27 +25,27 @@ void ListInsert (list_t *list, list_t *new)
     list->back = new;
 }
 
-void ListInsertHead (list_t *Head, list_t *New)
+void list_insert_head (list_t *head, list_t *new)
 {
-    ListInsert (Head->forward, New);
+    list_insert (head->forward, new);
 }
 
-void ListInsertTail (list_t *Head, list_t *New)
+void list_insert_tail (list_t *Head, list_t *new)
 {
-    ListInsert (Head, New);
+    list_insert (Head, new);
 }
 
-void ListRemove (list_t *List)
+void list_remove (list_t *list)
 {
-    if (List->forward == List)
+    if (list->forward == list)
         return;
 
-    List->forward->back = List->back;
-    List->back->forward = List->forward;
+    list->forward->back = list->back;
+    list->back->forward = list->forward;
 }
 
-bool ListEmpty (list_t *List)
+bool list_empty (list_t *list)
 {
-    return List == List->forward ? true : false;
+    return list == list->forward ? true : false;
 }
 
