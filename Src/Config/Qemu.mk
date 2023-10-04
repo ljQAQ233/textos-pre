@@ -15,6 +15,10 @@ QEMU_FLAGS := -drive format=raw,media=disk,file=$(IMG_OUTPUT) \
 			   -m $(MEM) \
 			   -no-reboot
 
+ifneq (${QEMU_VNC},)
+  QEMU_FLAGS += -vnc :${QEMU_VNC}
+endif
+
 # Qemu Common Args
 
 QEMU_FLAGS_RUN  := $(QEMU_FLAGS) \
