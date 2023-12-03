@@ -10,17 +10,19 @@ function udk_setup
         exit 1
     fi
 
-    if ! echo ${PASSWORD} | sudo -S mkdir /opt/udkdebugger; then
-        print_error "MkDir failed , please check the path \"/opt/udkdebugger\" is available"
+    if ! echo ${PASSWORD} | sudo -S mkdir /opt/intel/udkdebugger; then
+        print_error "MkDir failed , please check the path \"/opt/intel/udkdebugger\" is available"
         exit 1
     fi
     tar xvf Udk.tar.xz
-    sudo mv Udk /opt/udkdebugger
-    sudo chmod a+rw /opt/udkdebugger/*  --recursive
-    rm Udk.tar.xz
+    sudo mv Udk/* /opt/intel/udkdebugger
+    sudo chmod a+rw /opt/intel/udkdebugger/*  --recursive
+
+    rm -rf Udk
+    rm -rf Udk.tar.xz
 
     echo -n "Copying udkdebugger.conf to /etc/ ..."
-    if ! echo ${PASSWORD} | sudo -S cp ../Src/Utils/Udk/udkdebugger.conf /etc/udkdebugger.conf;then
+    if ! echo ${PASSWORD} | sudo -S cp /opt/intel/udkdebugger/udkdebugger.conf /etc/udkdebugger.conf;then
         print_error "Please exec this again! Exiting..." 
         exit 1
     fi
