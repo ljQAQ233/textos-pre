@@ -1,6 +1,6 @@
 ARCH   := X64
 
-export ARCH
+export ARCH OUTPUT
 
 include Config/Main.mk
 include Config/Image.mk
@@ -112,3 +112,4 @@ clean:
 	rm -rf Boot/Edk2/Conf
 	rm -rf Boot/Edk2/SigmaBootPkg
 	rm -rf $(OUTPUT)
+

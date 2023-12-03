@@ -24,7 +24,7 @@ OBJS := $(SRCS:.c=.c.o)
 OBJS := $(OBJS:.s=.s.o)
 OBJS := $(OBJS:.asm=.asm.o)
 
-OBJS := $(addprefix ${OUTPUT}/,${OBJS})
+OBJS := $(addprefix ${KERNEL_OUTPUT}/,${OBJS})
 
 include ../Config/Kernel.mk
 
@@ -36,7 +36,7 @@ $(KERNEL_EXEC): $(OBJS)
 	@echo -e "\033[032m   LD  \033[0m Linked all objects -> $@"
 	@if [[ "$(DEBUG)" == "true" ]];then \
 	  $(OBJCOPY) --only-keep-debug $@ $@.symbol \
-	  ;echo -e "\033[032m   OCP \033[0m $@ -> ${@:$(OUTPUT)/%=%}.symbol" \
+	  ;echo -e "\033[032m   OCP \033[0m $@ -> ${@:$(KERNEL_OUTPUT)/%=%}.symbol" \
 	;fi
 	@$(OBJCOPY) --strip-debug $@ $@
 
@@ -46,8 +46,8 @@ $(KERNEL_OUTPUT):
 
 .PHONY: clean
 clean:
-	if [[ "$(abspath $(OUTPUT))" != "$$(pwd)" ]];then \
-	  rm -rf $(OUTPUT) \
+	if [[ "$(abspath $(KERNEL_OUTPUT))" != "$$(pwd)" ]];then \
+	  rm -rf $(KERNEL_OUTPUT) \
 	;fi
 	if [[ "$(abspath $(KERNEL_OUTPUT))" != "$$(pwd)" ]];then \
 	  rm -rf $(KERNEL_OUTPUT) \
@@ -58,17 +58,17 @@ clean:
 
 # Make rules and printing formats
 
-$(OUTPUT)/%.s.o: %.s
+$(KERNEL_OUTPUT)/%.s.o: %.s
 	@mkdir -p $(@D)
 	@$(NASM) $(NFLAGS) $< -o $@
 	@echo -e "\033[032m   ASM \033[0m $<"
 
-$(OUTPUT)/%.asm.o: %.asm
+$(KERNEL_OUTPUT)/%.asm.o: %.asm
 	@mkdir -p $(@D)
 	@$(NASM) $(NFLAGS) $< -o $@
 	@echo -e "\033[032m   ASM \033[0m $<"
 
-$(OUTPUT)/%.c.o: %.c
+$(KERNEL_OUTPUT)/%.c.o: %.c
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo -e "\033[032m   CC  \033[0m $<"
