@@ -35,7 +35,7 @@ Ovmf:
 		-b $(TARGET) \
 		-DOUTPUT=$(BOOT_OUTPUT) \
 		-DARCH=$(ARCH)
-	cp -f `find $(BOOT_OUTPUT) -name "OVMF.fd" | grep "$(TARGET)_$(TOOLCHAIN)" | grep $(ARCH) | awk 'NR==1{print $$0}'` $(BASE)/OVMF_$(TARGET)_$(ARCH).fd
+	@cp -f `find $(BOOT_OUTPUT) -name "OVMF.fd" | grep "$(TARGET)_$(TOOLCHAIN)" | grep $(ARCH) | awk 'NR==1{print $$0}'` $(BASE)/OVMF_$(TARGET)_$(ARCH).fd
 	@echo
 
 .PHONY: Build
