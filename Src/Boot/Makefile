@@ -13,6 +13,15 @@ endif
 _Pre:
 	@ln -snf $(abspath SigmaBootPkg) Edk2/SigmaBootPkg
 
+.PHONY: _OptsGen
+_OptsGen:
+	@echo -e "include" $(shell find ${BOOT_OUTPUT} -iname GNUMakefile | grep $(PROJ) | grep "$(TARGET)_$(TOOLCHAIN)" | awk 'NR==1{print $$0}') > /tmp/OptsGen.makefile
+	@echo -e "WORKSPACE=$(abspath Edk2)" >> /tmp/OptsGen.makefile
+	@echo -e "_main:" >> /tmp/OptsGen.makefile
+	@echo -e "\t@\$$(CC) -dM \$$(CC_FLAGS) \$$(INC) -E - <<< \"#include <Uefi.h>\" > $(OUTPUT)/ImportUefi.h" >> /tmp/OptsGen.makefile
+	@echo -e "\t@\$$(CC) \$$(CC_FLAGS) \$$(INC) -E - <<< \"#include <Uefi.h>\" >> $(OUTPUT)/ImportUefi.h" >> /tmp/OptsGen.makefile
+	@make -f /tmp/OptsGen.makefile _main
+
 .PHONY: Ovmf
 Ovmf: export BOOT_OUTPUT:=$(BOOT_OUTPUT)/OVMF_$(ARCH)
 Ovmf:

@@ -24,10 +24,14 @@ OBJS := $(OBJS:.asm=.asm.o)
 
 OBJS := $(addprefix ${KERNEL_OUTPUT}/,${OBJS})
 
-include ../Config/Kernel.mk
+DEPS := $(OUTPUT)/ImportUefi.h   \
+		$(OUTPUT)/ImportUefi.def \
+		$(OUTPUT)/ImportUefi.typ
 
 .PHONY: Kernel
-Kernel: $(KERNEL_OUTPUT) $(KERNEL_EXEC)
+Kernel: deps             \
+		$(KERNEL_OUTPUT) \
+		$(KERNEL_EXEC)
 
 $(KERNEL_EXEC): $(OBJS)
 	@$(LD) $(LDFLAGS) $^ -T Linker.ld -o $@
@@ -53,6 +57,22 @@ clean:
 	find . -iname "*.s.o"   | xargs rm -f
 	find . -iname "*.asm.o" | xargs rm -f
 	find . -iname "*.c.o"   | xargs rm -f
+
+# Some dependences for kernel building
+deps: $(DEPS)
+
+$(OUTPUT)/ImportUefi.h:
+	@make -C $(SRC_DIR) Boot
+
+$(OUTPUT)/ImportUefi.def: $(OUTPUT)/ImportUefi.h   # Generate the hdr file which only includes definition of macros
+	@text=$$( \
+		cat $< | grep -v -f <( $(CC) $(CFLAGS) -E -dM -  < /dev/null | grep "#define" | tr '(' ' ' | awk '{print $$2}' ) | grep "#define" ) \
+	&& cat <<< $${text} > $@
+
+$(OUTPUT)/ImportUefi.typ: $(OUTPUT)/ImportUefi.h   # Generate other symbols' definition
+	@text=$$( \
+		cat $< | grep -v "#define" ) \
+	&& cat <<< $${text} > $@
 
 # Make rules and printing formats
 
