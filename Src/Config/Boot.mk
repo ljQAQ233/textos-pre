@@ -8,13 +8,13 @@ FLAGS     := $(_SKIP_AUTOGEN)
 # For EDK2 Build Toolchains
 CFLAGS    := $(addprefix -I,${INCLUDE})
 
-ifeq (${BOOT_DEBUG},true)
+ifeq (${BSRC_DEBUG},true)
   CFLAGS  += -D__SRC_LEVEL_DEBUG
 endif
 # For Gcc
 
-ifeq (${BOOT_DEBUG},true)
-  FLAGS += -DBOOT_DEBUG
+ifeq (${BSRC_DEBUG},true)
+  FLAGS += -DDBG_PRINT
  # For Source Level Debug and others,also a Macro in .dsc file
 endif
 

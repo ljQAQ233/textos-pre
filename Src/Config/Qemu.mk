@@ -26,7 +26,9 @@ QEMU_FLAGS_DBG  := $(QEMU_FLAGS) \
 
 # No graphic for debugging
 ifeq (${QEMU_GPY},false)
-  QEMU_FLAGS_DBG += -nographic
+  ifeq (${BSRC_DEBUG},false)
+    QEMU_FLAGS_DBG += -nographic
+  endif
 endif
 
 QEMU_FLAGS_BDBG  := $(QEMU_FLAGS_DBG) \
