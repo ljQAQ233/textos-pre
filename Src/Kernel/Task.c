@@ -2,6 +2,7 @@
 #include <TextOS/Task.h>
 #include <TextOS/Memory/VMM.h>
 
+#include <TextOS/Debug.h>
 #include <TextOS/Assert.h>
 
 #include <string.h>
@@ -165,6 +166,25 @@ void _UpdateSleep ()
             ListRemove (l);
         }
     }
+}
+
+void TaskBlock ()
+{
+    Task_t *Curr = TaskCurr();
+
+    Curr->Stat = TASK_BLK;
+
+    DEBUGK ("Task %d was blocked!\n", Curr->Pid);
+    
+    TaskSwitch();
+}
+
+void TaskUnblock (int Pid)
+{
+    Task_t *Task = Table[Pid];
+    ASSERTK (Task != NULL);
+
+    Task->Stat = TASK_PRE;
 }
 
 void TaskSleep (u64 Ticks)
