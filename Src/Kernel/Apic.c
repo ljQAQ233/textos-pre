@@ -67,19 +67,10 @@ void __Apic_SwitchMode ()
 void LApicErrHandler () { PANIC ("Apic Handler is not supported!!!"); }
 void LApicSpuriousHandler () { ; }
 
-#include <TextOS/Console/PrintK.h>
-
-u64 volatile Slice = 0;
 
 __INTR_FUNC(TimerHandler)
 {
     LApic_SendEOI();
-
-    Slice++;
-
-    if (Slice % 100 == 0) {
-        PrintK ("One second!!!\n");
-    }
 }
 
 #include <TextOS/Dev/Pit.h>

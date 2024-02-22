@@ -37,4 +37,18 @@ void *VMM_PhyAuto (u64 Vrt, size_t Num, u16 Flgs)
     return (void *)Vrt;
 }
 
+static u64 _Idx;
+
+/* TODO: complete it */
+void *VMM_AllocPages (size_t Num, u16 Flgs)
+{
+    void *Page = (void *)KERN_VMM + PAGE_SIZ * _Idx;
+
+    _Idx += Num;
+
+    VMM_PhyAuto ((u64)Page, Num, Flgs);
+
+    return Page;
+}
+
 /* TODO: Design memory space and set up VMM */
