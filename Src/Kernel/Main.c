@@ -12,6 +12,7 @@ extern void MemoryInit ();
 
 extern void TaskInit ();
 
+extern void DevInit ();
 extern void KeyboardInit ();
 
 #include <Irq.h>
@@ -29,6 +30,7 @@ void KernelMain ()
 
     MemoryInit();
 
+    DevInit();
     KeyboardInit();
 
     TaskInit();
