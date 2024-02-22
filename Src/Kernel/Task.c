@@ -202,20 +202,27 @@ void TaskSleep (u64 Ticks)
     TaskSwitch();
 }
 
-#include <TextOS/Console/Read.h>
+#include <TextOS/Console.h>
 #include <TextOS/Console/PrintK.h>
 
 #include <Irq.h>
+#include <TextOS/Dev.h>
 
 void ProcA ()
 {
-    while (true) {
-        UNINTR_AREA ({
-            char Buffer[9];
-            StringGet (Buffer, 8);
-            PrintK ("The words you entered : \"%s\"\n", Buffer);
-        });
-    }
+    ConsoleClear();
+
+    u8 Buffer[512];
+    UNINTR_AREA ({
+        Dev_t *Disk = DevLookupByType (DEV_BLK, DEV_IDE);
+        Disk->BlkRead (0, Buffer, 1);
+
+        PrintK ("\n--- DATA DUMP START ---\n");
+        for (int i = 0 ; i < sizeof(Buffer) ; i++) {
+            PrintK ("%#x, ", Buffer[i]);
+        }
+        PrintK ("\n---  DATA DUMP END  ---\n");
+    });
 }
 
 void ProcB ()
@@ -223,7 +230,7 @@ void ProcB ()
     while (true) {
         UNINTR_AREA ({
             PrintK ("B");
-            TaskSleep (5);
+            // TaskSleep (5);
         });
     }
 }
