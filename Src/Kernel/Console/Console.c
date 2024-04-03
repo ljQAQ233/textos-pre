@@ -21,6 +21,8 @@ void ConsoleInit ()
 
     Console.BGColor = 0x00000000;
     Console.FGColor = 0x00ffffff;
+
+    Console.Echo = true; // 开启回显
 }
 
 void ConsoleClear ()

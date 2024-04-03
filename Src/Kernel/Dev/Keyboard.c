@@ -218,7 +218,7 @@ __INTR_FUNC (KeyboardHandler)
 
     RingPush (&Ring, &Chr);
 
-    DEBUGK ("Common key - %d%d%d - %c!\n", Shift, Ctrl, Caps, Chr);
+    // DEBUGK ("Common key - %d%d%d - %c!\n", Shift, Ctrl, Caps, Chr);
 
     if (Pid < 0)
         return;
@@ -285,9 +285,10 @@ void KeyboardInit ()
     Dev_t *Kbd = DevNew();
     
     Kbd->Name = "PS/2 Keyboard";
-    Kbd->Read = (void *)KeyboardRead;
+    Kbd->Read  = (void *)KeyboardRead;
     Kbd->Write = NULL;
-    Kbd->Type = DEV_CHAR;
+    Kbd->Type    = DEV_CHAR;
+    Kbd->SubType = DEV_KBD;
 
     DevRegister (Kbd);
 }

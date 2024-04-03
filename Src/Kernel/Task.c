@@ -202,6 +202,7 @@ void TaskSleep (u64 Ticks)
     TaskSwitch();
 }
 
+#include <TextOS/Console/Read.h>
 #include <TextOS/Console/PrintK.h>
 
 #include <Irq.h>
@@ -210,8 +211,9 @@ void ProcA ()
 {
     while (true) {
         UNINTR_AREA ({
-            PrintK ("A");
-            TaskSleep (1);
+            char Buffer[9];
+            StringGet (Buffer, 8);
+            PrintK ("The words you entered : \"%s\"\n", Buffer);
         });
     }
 }
@@ -241,6 +243,6 @@ void TaskInit ()
     ListInit (&_Sleeper);
 
     TaskCreate (ProcA);
-    TaskCreate (ProcB);
+    // TaskCreate (ProcB);
 }
 

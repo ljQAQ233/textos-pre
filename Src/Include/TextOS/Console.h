@@ -14,6 +14,8 @@ struct _CONSOLE
     u32 FGColor;
     u32 BGColor;
     FontInfo_t *Font;
+
+    bool Echo;  /* show a char when you press a key */ 
 };
 
 typedef struct _CONSOLE Console_t;

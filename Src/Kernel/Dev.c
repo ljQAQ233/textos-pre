@@ -31,12 +31,13 @@ Private_t __DevSerial = {
     },
 };
 
+#include <TextOS/Console/Read.h>
 #include <TextOS/Console/Write.h>
 
 Private_t __DevConsole = {
     .Dev = &(Dev_t) {
         .Name = "Console (kernel builtin)",
-        .Read  = (void *)_DevOptNone,
+        .Read  = (void *)ConsoleRead,
         .Write = (void *)ConsoleWrite,
         .Type  = DEV_CHAR,
         .SubType = DEV_KNCON,

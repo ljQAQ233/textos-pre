@@ -60,5 +60,8 @@
 #define  SIZE_2MB    0x00200000
 #define  SIZE_1GB    0x40000000
 
+#define EOS '\0'
+#define EOL '\n'
+
 #endif
 
