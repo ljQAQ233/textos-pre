@@ -249,7 +249,7 @@ void TaskInit ()
     /* _Sleeper 迭代 停止于其本身, 而不对空指针作检查 */
     ListInit (&_Sleeper);
 
-    TaskCreate (ProcA);
+    // TaskCreate (ProcA);
     // TaskCreate (ProcB);
 }
 

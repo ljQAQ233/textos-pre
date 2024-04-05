@@ -3,6 +3,7 @@
 #include <TextOS/Console.h>
 #include <TextOS/Dev/Serial.h>
 #include <TextOS/Debug.h>
+#include <TextOS/Task.h>
 
 extern void InitializeAcpi ();
 extern void InitializeApic ();
@@ -15,6 +16,8 @@ extern void TaskInit ();
 extern void DevInit ();
 extern void KeyboardInit ();
 extern void IdeInit ();
+
+static void __ProcInit ();
 
 #include <Irq.h>
 
@@ -37,7 +40,18 @@ void KernelMain ()
 
     TaskInit();
 
+    Task_t *Tmp = TaskCreate(__ProcInit);
+    
     IntrStateEnable();
 
     while (true);
+}
+
+extern void InitFileSys ();
+
+static void __ProcInit ()
+{
+    InitFileSys();
+
+    while (true) TaskYield();
 }

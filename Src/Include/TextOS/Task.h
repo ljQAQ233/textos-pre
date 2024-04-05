@@ -15,6 +15,8 @@ typedef struct {
 
 #include <TextOS/Lib/List.h>
 
+#define FD_MAX 256
+
 typedef struct _Task {
     int Pid;
     int Stat;

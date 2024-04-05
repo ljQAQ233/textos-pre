@@ -168,7 +168,14 @@ ParseArgs:
                 Length = 2;
                 Flgs |= SPECIAL;
                 break;
+            case 'q':
+                {
+                    char Fill = (char)va_arg (Args, int);
+                    for (int i = 0 ; i < Width ; i++) *Out++ = Fill;
+                }
 
+                Ptr++;
+                continue;
             case '1':
             case '2':
             case '3':
@@ -236,6 +243,7 @@ ParseArgs:
         }
 
         if (Flgs & SPECIAL) {
+            /* Prefix `0x` for hex or `0` for octal */
             Siz -= (Radix == 16) ? 2 :
                    (Radix == 8 ) ? 1 : 0;
         }

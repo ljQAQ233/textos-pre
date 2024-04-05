@@ -80,8 +80,12 @@ static void _ReadSector (u16 *Data)
         );
 }
 
+#include <Irq.h>
+
 void IdeRead (u32 Lba, void *Data, u8 Cnt)
 {
+    UNINTR_AREA_START();
+
     /*
        我们先 使用 28 位 PIO 模式练练手.
     */
@@ -103,6 +107,8 @@ void IdeRead (u32 Lba, void *Data, u8 Cnt)
         _ReadSector (Data);
         Data += SECT_SIZ;
     }
+    
+    UNINTR_AREA_END();
 }
 
 // void IdeRead (u32 Lba, void *Data, u8 Cnt)
