@@ -1,5 +1,6 @@
 #include <TextOS/TextOS.h>
 #include <TextOS/Console.h>
+#include <TextOS/Dev.h>
 
 static int ConsoleWriteChar (char Char)
 {
@@ -41,15 +42,27 @@ static int ConsoleWriteChar (char Char)
 
 #include <Irq.h>
 
-size_t ConsoleWrite (char *String)
+size_t ConsoleWrite (Dev_t *Dev, char *String, size_t Count)
 {
     char *Ptr;
 
     UNINTR_AREA ({
-        for (Ptr = String ; Ptr && *Ptr ; Ptr++)
+        for (Ptr = String ; Ptr && *Ptr && Count ; Ptr++, Count--)
             ConsoleWriteChar (*Ptr);
     });
 
     return (size_t)(Ptr - String);
+}
+
+void PutChar (char Char)
+{
+    Dev_t *Con = DevLookupByType (DEV_CHAR, DEV_KNCON);
+    Con->Write (Con, &Char, 1);
+}
+
+void PutString (char *Str)
+{
+    Dev_t *Con = DevLookupByType (DEV_CHAR, DEV_KNCON);
+    Con->Write (Con, Str, -1);
 }
 

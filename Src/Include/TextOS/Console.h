@@ -25,6 +25,7 @@ extern Console_t Console;
 void ConsoleInit ();
 void ConsoleClear ();
 
+#include "Console/Read.h"
 #include "Console/Write.h"
 
 #endif

@@ -235,7 +235,7 @@ static char KeyboardGetc ()
     return *((char *)RingPop (&Ring));
 }
 
-void KeyboardRead (char *Buffer, size_t Count)
+void KeyboardRead (Dev_t *Dev, char *Buffer, size_t Count)
 {
     for (int i = 0 ; i < Count ; i++) {
         char Chr = KeyboardGetc();

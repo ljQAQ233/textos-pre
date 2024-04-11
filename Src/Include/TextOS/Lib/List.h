@@ -21,3 +21,8 @@ void ListInsertTail (List_t *Head, List_t *New);
 void ListRemove (List_t *List);
 
 bool ListEmpty (List_t *List);
+
+#define LIST_INIT(List) ((List_t ){ \
+      .Forward  = (List_t *)&List, \
+      .Back     = (List_t *)&List, \
+    })

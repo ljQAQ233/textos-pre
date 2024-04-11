@@ -1,25 +1,23 @@
 #include <TextOS/Dev.h>
 #include <TextOS/Console.h>
 
-int ConsoleRead (char *Buffer, size_t Count)
+int ConsoleRead (Dev_t *Con, char *Buffer, size_t Count)
 {
     Dev_t *Kbd = DevLookupByType (DEV_CHAR, DEV_KBD);
 
-    int i = Kbd->Read (Buffer, Count);
-    Buffer[i] = EOS;
-
-    return i;
+    return Kbd->Read (Kbd, Buffer, Count);
 }
 
 char CharGet ()
 {
-    char Chr[2] = "";
+    Dev_t *Con = DevLookupByType (DEV_CHAR, DEV_KNCON);
 
-    ConsoleRead (Chr, 1);
+    char Chr = 0;
+    Con->Read (Con, &Chr, 1);
     if (Console.Echo)
-        ConsoleWrite (Chr);
+        Con->Write (Con, &Chr, 1);
 
-    return Chr[0];
+    return Chr;
 }
 
 char *LineGet (char *Buffer)

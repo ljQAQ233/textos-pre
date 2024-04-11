@@ -16,25 +16,28 @@ enum SubType {
     DEV_IDE,
 };
 
-typedef struct {
+struct _Dev;
+typedef struct _Dev Dev_t;
+
+struct _Dev {
     char  *Name;
     int    Type;
     int    SubType;
     union {
         struct {
-            int   (*Write)(void *Buffer, size_t Count);
-            int   (*Read)(void *Buffer, size_t Count);
+            int   (*Write)(Dev_t *This, void *Buffer, size_t Count);
+            int   (*Read)(Dev_t *This, void *Buffer, size_t Count);
         };
         struct {
-            int   (*BlkWrite)(u64 Addr, void *Buffer, size_t Count);
-            int   (*BlkRead)(u64 Addr, void *Buffer, size_t Count);
+            int   (*BlkWrite)(Dev_t *This, u64 Addr, void *Buffer, size_t Count);
+            int   (*BlkRead)(Dev_t *This, u64 Addr, void *Buffer, size_t Count);
         };
     };
 
     /* TODO : device isolation 设备隔离 */
 
     void *Private; /* 在调用 操作函数 时传入, 以支持同种类型的多种设备 */
-} Dev_t;
+};
 
 enum Lkup {
     LKUP_TYPE,

@@ -184,7 +184,7 @@ void InitFileSys ()
     Dev_t *Hd = DevLookupByType (DEV_BLK, DEV_IDE);
 
     Record_t *Record = MallocK (sizeof(Record_t));
-    Hd->BlkRead (0, Record, 1);
+    Hd->BlkRead (Hd, 0, Record, 1);
 
     _InitPartitions (Hd, Record);
 

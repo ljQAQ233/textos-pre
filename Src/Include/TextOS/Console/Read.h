@@ -1,8 +1,5 @@
 #pragma once
 
-/* Read `Count` bytes from console (keyboard input) */
-int ConsoleRead (char *Buffer, size_t Count);
-
 /* Get a character from console (input) */
 char CharGet ();
 

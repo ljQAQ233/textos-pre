@@ -8,6 +8,14 @@
 
 #include <string.h>
 
+/*
+   4 disks ->
+      - Primary master
+      - Primary slave
+      - Primary master
+      - Primary slave
+*/
+
 #define IDE_P_BASE 0x1F0 // Prime
 #define IDE_S_BASE 0x170 // Secondary
 
@@ -82,7 +90,7 @@ static void _ReadSector (u16 *Data)
 
 #include <Irq.h>
 
-void IdeRead (u32 Lba, void *Data, u8 Cnt)
+void IdeRead (Dev_t *Dev, u32 Lba, void *Data, u8 Cnt)
 {
     UNINTR_AREA_START();
 

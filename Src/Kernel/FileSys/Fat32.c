@@ -120,7 +120,7 @@ static int     Fat32_Read  (Node_t *This, void *Buffer, size_t Siz);
 FS_INITIALIZER(__FsInit_Fat32)
 {
     Fat32Record_t *Record = MallocK(sizeof(Fat32Record_t));
-    Hd->BlkRead (Partition->Relative, Record, 1);
+    Hd->BlkRead (Hd, Partition->Relative, Record, 1);
 
     if (Record->EndSym != 0xAA55)
         return NULL;
@@ -221,7 +221,7 @@ static int _ReadContent (Node_t *This, void *Buffer, size_t Siz)
     /* TODO: Replace it */
     void *Tmp = MallocK(Sys->Record->SecSiz * Count);
 
-    Sys->Dev->BlkRead (This->Private.Addr, Tmp, Count);
+    Sys->Dev->BlkRead (Sys->Dev, This->Private.Addr, Tmp, Count);
     memcpy (Buffer, Tmp, Real);
 
     FreeK(Tmp);
@@ -339,7 +339,7 @@ static Node_t *_SearchEntry (Node_t *Parent, char *Target, bool ReadDir)
 
     for (size_t SectorIdx = 0 ;  ; SectorIdx++) {
         void *Sector = MallocK(Sys->Record->SecSiz);
-        Sys->Dev->BlkRead (Parent->Private.Addr + SectorIdx, Sector, 1);
+        Sys->Dev->BlkRead (Sys->Dev, Parent->Private.Addr + SectorIdx, Sector, 1);
 
         for (size_t EntryIdx = 0 ; EntryIdx < Sys->Record->SecSiz / sizeof(Entry_t) ; EntryIdx++) {
             Entry_t *Entry = (Entry_t *)Sector + EntryIdx;

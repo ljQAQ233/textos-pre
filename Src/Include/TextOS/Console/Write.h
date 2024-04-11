@@ -1,3 +1,6 @@
 #pragma once
 
-size_t ConsoleWrite (char *String);
+void PutChar (char Char);
+
+void PutStr (char *Str);
+

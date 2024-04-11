@@ -215,7 +215,7 @@ void ProcA ()
     u8 Buffer[512];
     UNINTR_AREA ({
         Dev_t *Disk = DevLookupByType (DEV_BLK, DEV_IDE);
-        Disk->BlkRead (0, Buffer, 1);
+        Disk->BlkRead (Disk, 0, Buffer, 1);
 
         PrintK ("\n--- DATA DUMP START ---\n");
         for (int i = 0 ; i < sizeof(Buffer) ; i++) {

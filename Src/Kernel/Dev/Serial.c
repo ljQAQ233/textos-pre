@@ -1,5 +1,21 @@
 #include <IO.h>
 
+#include <TextOS/Dev.h>
+#include <TextOS/Dev/Private.h>
+
+size_t SerialRead (Dev_t *Dev, char *Str, size_t Siz);
+size_t SerialWrite (Dev_t *Dev, char *Str, size_t Count);
+
+static DevPri_t Dev = {
+    .Dev = &(Dev_t) {
+        .Name = "Serial Port",
+        .Read  = (void *)SerialRead,
+        .Write = (void *)SerialWrite,
+        .Type  = DEV_CHAR,
+        .SubType = DEV_SERIAL,
+    },
+};
+
 #define COM1 0x3f8
 
 //      Name    Offset  DLAB
@@ -32,6 +48,8 @@ void SerialInit ()
     }
 
     OutB (COM1 + R_MCR, 0b100);        // 恢复 -> Out 1
+
+    __DevRegister (&Dev);
 }
 
 static inline char _SerialRead ()
@@ -41,7 +59,7 @@ static inline char _SerialRead ()
     return InB (COM1 + R_DATA);
 }
 
-size_t SerialRead (char *Str, size_t Siz)
+size_t SerialRead (Dev_t *Dev, char *Str, size_t Siz)
 {
     for (size_t i = 0 ; i < Siz ; i++)
         *Str++ = _SerialRead (); 
@@ -56,7 +74,7 @@ static inline void _SerialWrite (char Char)
     OutB (COM1 + R_DATA, Char);
 }
 
-size_t SerialWrite (char *Str)
+size_t SerialWrite (Dev_t *Dev, char *Str, size_t Count)
 {
     char *Ptr = Str;
     while (Ptr && *Ptr)

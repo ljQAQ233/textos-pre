@@ -1,4 +1,5 @@
 #include <TextOS/Dev.h>
+#include <TextOS/Dev/Private.h>
 #include <TextOS/Panic.h>
 #include <TextOS/Lib/List.h>
 #include <TextOS/Memory/Malloc.h>
@@ -10,43 +11,11 @@
     3. DevRegister() to insert into the root list
 */
 
-typedef struct {
-    Dev_t  *Dev;
-    List_t List;
-} Private_t;
+void __DevOptNone() { PANIC ("This opts is not supported!"); };
 
-static void _DevOptNone() { PANIC ("This opts is not supported!"); };
-
-#include <TextOS/Dev/Serial.h>
-
-Private_t __DevSerial = {
-    .Dev = &(Dev_t) {
-        .Name = "Serial Port",
-        .Read  = (void *)SerialRead,
-        .Write = (void *)SerialWrite,
-        .Type  = DEV_CHAR,
-        .SubType = DEV_SERIAL,
-        .BlkRead = (void *)_DevOptNone,
-        .BlkWrite = (void *)_DevOptNone,
-    },
+static DevPri_t DevRoot = {
+    .List = LIST_INIT(DevRoot.List)
 };
-
-#include <TextOS/Console/Read.h>
-#include <TextOS/Console/Write.h>
-
-Private_t __DevConsole = {
-    .Dev = &(Dev_t) {
-        .Name = "Console (kernel builtin)",
-        .Read  = (void *)ConsoleRead,
-        .Write = (void *)ConsoleWrite,
-        .Type  = DEV_CHAR,
-        .SubType = DEV_KNCON,
-        .BlkRead = (void *)_DevOptNone,
-        .BlkWrite = (void *)_DevOptNone,
-    },
-};
-
-static Private_t DevRoot;
 
 void DevInit ()
 {
@@ -54,28 +23,29 @@ void DevInit ()
     
     Root->Name = "Dev Root";
     DevRoot.Dev = Root;
+}
 
-    ListInit (&DevRoot.List);
-    ListInsert (&DevRoot.List, &__DevConsole.List);
-    ListInsert (&DevRoot.List, &__DevSerial.List);
+void __DevRegister (DevPri_t *Pri)
+{
+    ListInsertTail (&DevRoot.List, &Pri->List);
 }
 
 void DevRegister (Dev_t *Dev)
 {
-    Private_t *Pri = MallocK (sizeof (Private_t));
+    DevPri_t *Pri = MallocK (sizeof (DevPri_t));
     Pri->Dev = Dev;
 
-    ListInsertTail (&DevRoot.List, &Pri->List);
+    __DevRegister (Pri);
 }
 
 Dev_t *DevNew ()
 {
     Dev_t *Dev = MallocK (sizeof (Dev_t));
     
-    Dev->Read = (void *)_DevOptNone;
-    Dev->Write = (void *)_DevOptNone;
-    Dev->BlkRead = (void *)_DevOptNone;
-    Dev->BlkWrite = (void *)_DevOptNone;
+    Dev->Read = (void *)__DevOptNone;
+    Dev->Write = (void *)__DevOptNone;
+    Dev->BlkRead = (void *)__DevOptNone;
+    Dev->BlkWrite = (void *)__DevOptNone;
     
     return Dev;
 }
@@ -89,7 +59,7 @@ Dev_t *DevNew ()
 Dev_t *DevLookupByType (int Type, int SubType)
 {
     FOREACH_DEV() {
-        Private_t *Pri = CR (i, Private_t, List);
+        DevPri_t *Pri = CR (i, DevPri_t, List);
         if (Pri->Dev->Type != Type)
             continue;
         if (Pri->Dev->SubType == SubType)
@@ -102,7 +72,7 @@ Dev_t *DevLookupByType (int Type, int SubType)
 Dev_t *DevLookupByName (const char *Name)
 {
     FOREACH_DEV() {
-        Private_t *Pri = CR (i, Private_t, List);
+        DevPri_t *Pri = CR (i, DevPri_t, List);
         if (strcmp (Pri->Dev->Name, Name) == 0)
             return Pri->Dev;
     }
@@ -132,7 +102,7 @@ void DevList ()
     int Idx = 0;
 
     FOREACH_DEV() {
-        Private_t *Pri = CR (i, Private_t, List);
+        DevPri_t *Pri = CR (i, DevPri_t, List);
         PrintK ("Dev Index - %04d -> %s\n"  , Idx, Pri->Dev->Name);
         PrintK ("            Type -> %s\n"  , _DevTypeString(Pri->Dev->Type));
         PrintK ("            Opts -> %d%d\n",
