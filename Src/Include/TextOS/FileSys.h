@@ -11,8 +11,15 @@ enum {
     O_WRITE = 0x2,
 };
 
+
 struct _Node;
 typedef struct _Node Node_t;
+
+typedef struct {
+    Node_t * (*Open)(Node_t *This, char *Path, u64 Args);
+    int      (*Read)(Node_t *This, void *Buffer, size_t Siz, size_t Offset);
+    int      (*Close)(Node_t *This);
+} FsOpts_t;
 
 struct _Node {
     char *Name;
@@ -34,12 +41,7 @@ struct _Node {
     // u64 References;
 
     /* Interfaces */
-
-    struct {
-        Node_t * (*Open)(Node_t *This, char *Path, u64 Args);
-        int      (*Read)(Node_t *This, void *Buffer, size_t Siz);
-        int      (*Close)(Node_t *This);
-    } Opts;
+    FsOpts_t *Opts;
 
     u64 OpenArgs;
 };

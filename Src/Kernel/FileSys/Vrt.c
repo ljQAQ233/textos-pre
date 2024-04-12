@@ -39,7 +39,7 @@ static bool _Cmp (char *A, char *B)
     return true;
 }
 
-Node_t *__VrtFs_Test (Node_t *Start, char *Path)
+Node_t *__VrtFs_Test (Node_t *Start, char *Path, Node_t **Last, char **LastPath)
 {
     for (Node_t *Ptr = Start->Child ; Ptr ; Ptr = Ptr->Next)
         if (_Cmp (Ptr->Name, Path))
@@ -49,8 +49,13 @@ Node_t *__VrtFs_Test (Node_t *Start, char *Path)
                 return Ptr; 
             if (~Ptr->Attr & NA_DIR)
                 break;
-            return __VrtFs_Test (Ptr->Child, Nxt);
+            return __VrtFs_Test (Ptr->Child, Nxt, Last, LastPath);
         }
+
+    if (Last)
+        *Last = Start;
+    if (LastPath)
+        *LastPath = Path;
 
     return NULL;
 }
@@ -60,18 +65,17 @@ Node_t *__VrtFs_Test (Node_t *Start, char *Path)
 
 static int _VrtFs_Open (Node_t *This, Node_t **Node, char *Path, u64 Args)
 {
-    DEBUGK ("Try to open file : %s (%#x)\n", Path, Args);
-
     /* 为 Open 扫一些障碍! */
     if (!This) This = _Root;
     if (Path[0] == '/') This = _Root;
     while (*Path == '/') Path++;
 
     Node_t *Res;
-    if ((Res = __VrtFs_Test (This, Path)))
+    Node_t *Start;
+    if ((Res = __VrtFs_Test (This, Path, &Start, &Path)))
         goto Complete;
 
-    Res = This->Opts.Open (This, Path, Args);
+    Res = Start->Opts->Open (Start, Path, Args);
     if (Res == NULL)
         return -ENOENT;
 
@@ -85,24 +89,35 @@ Complete:
 
 int __VrtFs_Open (Node_t *This, Node_t **Node, const char *Path, u64 Args)
 {
-    return _VrtFs_Open (This, Node, (char *)Path, Args);
+    int Stat = _VrtFs_Open (This, Node, (char *)Path, Args);
+    if (!Stat)
+        DEBUGK ("Opened %s (%#x) successfully! - size : %u\n", Path, Args, (*Node)->Siz);
+    else
+        DEBUGK ("Failed to open %s (%#x) - stat : %d\n", Path, Args, Stat);
+
+    return Stat;
 }
 
-int __VrtFs_Read (Node_t *This, void *Buffer, size_t Siz)
+int __VrtFs_Read (Node_t *This, void *Buffer, size_t Siz, size_t Offset)
 {
-    DEBUGK ("Try to read file : %s\n", This->Name);
-    
-    if (~This->Attr & O_READ)
-        return -EPERM;
-    
-    return This->Opts.Read (This, Buffer, Siz);
+    int Res = This->Opts->Read (This, Buffer, Siz, Offset);
+    if (Res >= 0)
+        DEBUGK ("Read %s successfully! - ReadSiz : %llu\n", This->Name, Res);
+    else
+        DEBUGK ("Failed to read %s - stat : %d\n", This->Name, Res);
+
+    return Res;
 }
 
 int __VrtFs_Close (Node_t *This)
 {
-    DEBUGK ("Try to close file : %s\n", This->Name);
+    int Stat = This->Opts->Close (This);
+    if (!Stat)
+        DEBUGK ("Closed %s successfully!\n", This);
+    else
+        DEBUGK ("Failed to close %s - stat : %d\n", This, Stat);
 
-    return This->Opts.Close (This);
+    return Stat;
 }
 
 int __VrtFs_ReadDir (Node_t *Node)
@@ -191,5 +206,9 @@ void InitFileSys ()
     FreeK (Record);
 
     PrintK ("File system initialized!\n");
+    Node_t *File;
+    char Buffer[17];
+    __VrtFs_Open (NULL, &File, "/EFI/Boot/BootX64.efi", O_READ);
+    __VrtFs_Read (File, Buffer, 16, 0);
 }
 

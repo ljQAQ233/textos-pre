@@ -4,7 +4,7 @@
 
 extern int __VrtFs_Open (Node_t *This, Node_t **Node, const char *Path, u64 Args);
 
-extern int __VrtFs_Read (Node_t *This, void *Buffer, size_t Siz);
+extern int __VrtFs_Read (Node_t *This, void *Buffer, size_t Siz, size_t Offset);
 
 extern int __VrtFs_Close (Node_t *This);
 

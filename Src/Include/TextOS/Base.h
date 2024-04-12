@@ -62,6 +62,7 @@
 
 #define EOS '\0'
 #define EOL '\n'
+#define EOF ((int)-1)
 
 #endif
 

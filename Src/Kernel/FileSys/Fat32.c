@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#define FAT_EOF 0x0FFFFFFF          // EOF in FAT1
+
 /* Biso parameter block */
 typedef struct _packed
 {
@@ -100,12 +102,14 @@ typedef struct
 {
     Dev_t *Dev;
 
+    u64           FatSec;
     u64           FirstDataSec;
     Record_t      *Mbs;       // The master boot sector of this partition
     Fat32Record_t *Record;    // The boot record of this Fat32 file system
     Partition_t   *Partition; // The partition entry in Mbs
 } Info_t;
 
+#include <TextOS/Dev/Ide.h>
 #include <TextOS/Memory/Malloc.h>
 
 #include <TextOS/Debug.h>
@@ -115,7 +119,15 @@ static Node_t *Fat32_PathWalk (Node_t *Start, char *Path);
 
 static Node_t *Fat32_Open  (Node_t *This, char *Path, u64 Args);
 static int     Fat32_Close (Node_t *This);
-static int     Fat32_Read  (Node_t *This, void *Buffer, size_t Siz);
+static int     Fat32_Read  (Node_t *This, void *Buffer, size_t Siz, size_t Offset);
+
+static Node_t *_SearchEntry (Node_t *Parent, char *Target, bool ReadDir);
+
+FsOpts_t __Fat32_Opts = {
+    .Open = Fat32_Open,
+    .Read = Fat32_Read,
+    .Close = Fat32_Close,
+};
 
 FS_INITIALIZER(__FsInit_Fat32)
 {
@@ -127,21 +139,26 @@ FS_INITIALIZER(__FsInit_Fat32)
 
     u64 FatSiz = Record->FatSiz16 == 0 ? Record->FatSiz32 : Record->FatSiz16;
 
-    u64 FirstDataSec = Record->SecReserved
+    u64 FatTabSec    = Partition->Relative + Record->SecReserved;
+    u64 FirstDataSec = FatTabSec
                      + Record->FatNum * FatSiz
                      + (Record->Roots * 32 + (Record->SecSiz - 1)) / Record->SecSiz; // root_dir_sectors
 
     u64 Root = (Record->RootClus - 2) * Record->SecPerCluster + FirstDataSec;
+    DEBUGK ("Fat32 -> Tab : %#x (%u,%u) , First data sector : %#x , Root : %#x {%d}\n", FatTabSec, Record->FatNum, FatSiz, FirstDataSec, Root, Record->SecPerCluster);
 
     Info_t *Sys = MallocK(sizeof(Info_t));
     Node_t *Ori = MallocK(sizeof(Node_t));
 
+    /* 记录文件系统信息 */
     Sys->Dev = Hd;
     Sys->Mbs = Mbs;
     Sys->Record = Record;
     Sys->Partition = Partition;
+    Sys->FatSec = FatTabSec;
     Sys->FirstDataSec = FirstDataSec;
 
+    /* 初始化此文件系统根节点 */
     Ori->Attr = NA_DIR | NA_PROTECT;
     Ori->Name = "/";
     Ori->Root = Ori;
@@ -150,16 +167,15 @@ FS_INITIALIZER(__FsInit_Fat32)
     Ori->Private.Sys = Sys;
     Ori->Private.Addr = Root;
 
-    Ori->Siz = 0;    
+    Ori->Siz = 0;
 
-    Ori->Opts.Open  = Fat32_Open;
-    Ori->Opts.Close = Fat32_Close;
-    Ori->Opts.Read  = Fat32_Read;
+    /* FAT32 文件系统接口 */
+    Ori->Opts = &__Fat32_Opts;
 
     // PrintK("Try to pathwalk...\n");
     // if (Fat32_PathWalk(Origin, "/EFI/Boot"))
     //     PrintK("/EFI/Boot was found!!!\n");
-
+    
     return Ori;
 }
 
@@ -178,8 +194,6 @@ static int Fat32_Close (Node_t *This)
         while (This->Child)
             Fat32_Close (This->Child);
 
-    if (This->Parent != This)
-        goto Complete;
     /* 除去父目录项的子目录项 */
     {
         Node_t *Curr = This->Parent->Child;
@@ -196,8 +210,9 @@ static int Fat32_Close (Node_t *This)
     }
 
 Complete:
-    FreeK (This->Private.Sys);
     FreeK (This);
+
+    return 0;
 }
 
 /* 已经处于一个尴尬的境地了 -> 因为之前已经将 目录 读取进 `_Root` */
@@ -211,28 +226,36 @@ static int _ReadDir(Node_t *This, void *Buffer, size_t Count)
     return Real;
 }
 
-static int _ReadContent (Node_t *This, void *Buffer, size_t Siz)
+static int _ReadContent (Node_t *This, void *Buffer, size_t ReadSiz, size_t Offset)
 {
     Info_t *Sys = This->Private.Sys;
 
-    int Real = MIN(This->Siz, Siz);
+    if (ReadSiz == 0)
+        return 0;
+    if (Offset >= This->Siz)
+        return EOF;
+    
+    int Real = MIN(This->Siz, Offset + ReadSiz) - Offset;
     size_t Count = DIV_ROUND_UP(Real, Sys->Record->SecSiz);
 
     /* TODO: Replace it */
     void *Tmp = MallocK(Sys->Record->SecSiz * Count);
-
-    Sys->Dev->BlkRead (Sys->Dev, This->Private.Addr, Tmp, Count);
-    memcpy (Buffer, Tmp, Real);
+    Sys->Dev->BlkRead (
+        Sys->Dev,
+        This->Private.Addr,
+        Tmp, Count
+    );
+    memcpy (Buffer, Tmp + (Offset % SECT_SIZ), Real);
 
     FreeK(Tmp);
 
     return Real;
 }
 
-static int Fat32_Read (Node_t *This, void *Buffer, size_t Siz)
+static int Fat32_Read (Node_t *This, void *Buffer, size_t Siz, size_t Offset)
 {
     if (This->Attr & NA_ARCHIVE)
-        return _ReadContent (This, Buffer, Siz);
+        return _ReadContent (This, Buffer, Siz, Offset);
 
     return _ReadDir (This, NULL, Siz);   // TODO
 }
@@ -241,6 +264,23 @@ static int Fat32_Read (Node_t *This, void *Buffer, size_t Siz)
 #define _LEN_EXT 3
 
 #include <string.h>
+
+_UTIL_NEXT();
+
+static Entry_t *_EntryDuplicate (Entry_t *Ori)
+{
+    Entry_t *Buf = MallocK(sizeof(Entry_t));
+
+    return memcpy (Buf, Ori, sizeof(Entry_t));
+}
+
+static u64 _AddrGet (Info_t *Sys, Entry_t *Entry)
+{
+    u64 Addr = Sys->FirstDataSec
+             + Sys->Record->SecPerCluster * ((Entry->ClusterLow | (u32)Entry->ClusterHigh << 16) - 2);
+
+    return Addr;
+}
 
 static inline size_t _ValidChr (const char *Str)
 {
@@ -256,24 +296,7 @@ static inline size_t _ValidChr (const char *Str)
     return i;
 }
 
-_UTIL_NEXT();
-
-static Entry_t *_EntryDup (Entry_t *Ori)
-{
-    Entry_t *Buf = MallocK(sizeof(Entry_t));
-
-    return memcpy (Buf, Ori, sizeof(Entry_t));
-}
-
-static u64 _AddrGet (Info_t *Sys, Entry_t *Entry)
-{
-    u64 Addr = Sys->FirstDataSec
-             + Sys->Record->SecPerCluster * ((Entry->ClusterLow | (u32)Entry->ClusterHigh << 16) - 2);
-
-    return Addr;
-}
-
-static bool _CmpBuf(char *A, char *B)
+static bool _MatchName(char *A, char *B)
 {
     size_t LenA = _ValidChr(A),
            LenB = _ValidChr(B);
@@ -289,28 +312,51 @@ static bool _CmpBuf(char *A, char *B)
 }
 
 /* 长目录项的 文件名 以及 拓展名 是合并存储的, 所以我们提供转换功能 , 此处还是使用宏来偷懒... */
-#define _(m, Ptr)                                    \
-    for (int i = 0; i < sizeof(m) / sizeof(*m); i++) \
-        if (m[i] == 0xFFFF)                          \
-            break;                                   \
-        else                                         \
-            *Ptr++ = m[i] & 0xFF;                    \
+#define _(m, c, fini, Ptr)                                    \
+    for (int i = 0; i < sizeof(m) / sizeof(*m); i++, (c)++) { \
+        if (m[i] == 0xFFFF || *Ptr == '/')                    \
+            goto fini;                                        \
+        if (m[i] != *Ptr++)                                   \
+            return false;                                     \
+    }                                                         \
 
-static inline char *_CharNamel (EntryLong_t *Long, char *Buffer)
+static inline bool _MatchNamel (EntryLong_t *Long, char **Name, size_t *Siz)
 {
-    char *Ptr = Buffer;
+    char *Ptr = *Name;
+
+    _(Long->Name1, *Siz, fini, Ptr);
+    _(Long->Name2, *Siz, fini, Ptr);
+    _(Long->Name3, *Siz, fini, Ptr);
+
+fini:
+    *Name = Ptr;
+
+    return (*Ptr == 0 || *Ptr == '/') ? true : false;
+}
+
+#undef _
+
+#define _(m, Ptr)                                     \
+    for (int i = 0; i < sizeof(m) / sizeof(*m); i++)  \
+        if (m[i] == 0xFFFF)                           \
+            break;                                    \
+        else                                          \
+            *Ptr++ = m[i];                            \
+
+static inline char *_ParseNamel (EntryLong_t *Long, char **Buffer)
+{
+    char *Ptr = *Buffer;
 
     _(Long->Name1, Ptr);
     _(Long->Name2, Ptr);
     _(Long->Name3, Ptr);
 
-    *Ptr = '\0';
-    return Buffer;
+    return *Buffer = Ptr;
 }
 
 #undef _
 
-static inline char *_CharName (Entry_t *Entry, char *Buffer)
+static inline char *_ParseName (Entry_t *Entry, char *Buffer)
 {
     char *Ptr = Buffer;
     char *Name = Entry->Name;
@@ -324,87 +370,132 @@ static inline char *_CharName (Entry_t *Entry, char *Buffer)
     return Buffer;
 }
 
+//
+
+#define DUMP_IC(Sys, Sect)    ((Sect - Sys->FirstDataSec) / Sys->Record->SecPerCluster + 2)
+#define DUMP_IS(Sys, Cluster) ((Cluster - 2) * Sys->Record->SecPerCluster + Sys->FirstDataSec)
+
 /*
     路径游走 , 我第一次听到这个好听的名字是在 lunaixsky 的视频里面, 这里直接沿用了!
+
+    根据 Parent 指定的 Addr 遍历 FAT1 中的对应项, 直到遇到 FAT_EOF 为止
 
     @param Parent  父目录
     @param Target  搜索对象文件名
     @param ReadDir 控制是否是读取目录, 即是否对每个 Entry 都创建一个 Node
 */
+#define FAT_ALOC_NR  (SECT_SIZ / sizeof(u32))
+#define FAT_ENTRY_NR (SECT_SIZ / sizeof(Entry_t))
+
+#define ALIGN_DOWN(Target, Base) ((Base) * (Target / Base))
+
 static Node_t *_SearchEntry (Node_t *Parent, char *Target, bool ReadDir)
 {
     Info_t *Sys = Parent->Private.Sys;
 
-    Node_t *Res = NULL;
+    u32 *Idxes = MallocK (SECT_SIZ);
+    u32 Curr = DUMP_IC(Sys, Parent->Private.Addr);
+    Sys->Dev->BlkRead (
+        Sys->Dev,
+        Sys->FatSec + (Curr * 4) / SECT_SIZ,
+        Idxes, 1
+    );
 
-    for (size_t SectorIdx = 0 ;  ; SectorIdx++) {
-        void *Sector = MallocK(Sys->Record->SecSiz);
-        Sys->Dev->BlkRead (Sys->Dev, Parent->Private.Addr + SectorIdx, Sector, 1);
+    char *Name;
+    Node_t *Child;
+    
+    while (true)
+    {
+        Entry_t *Template = NULL;
 
-        for (size_t EntryIdx = 0 ; EntryIdx < Sys->Record->SecSiz / sizeof(Entry_t) ; EntryIdx++) {
-            Entry_t *Entry = (Entry_t *)Sector + EntryIdx;
-            Entry_t *Item  = NULL;
+        Entry_t *Entries = MallocK (SECT_SIZ);
+        Sys->Dev->BlkRead (Sys->Dev, DUMP_IS(Sys, Curr), Entries, 1);
 
-            if (*(u64 *)Entry == 0)
-                goto OptEnd;
-
-            char Buffer[64];
-
-            if (Entry->Attr == FA_LONG) {
-                _CharNamel ((EntryLong_t *)Entry, Buffer);
-                Item = _EntryDup(Entry + 1); // TODO: 目录项处于下一个扇区
-                
-                EntryIdx++;
-            } else {
-                _CharName (Entry, Buffer);
-                Item = _EntryDup(Entry);
-            }
-
-            bool Hit = _CmpBuf (Target, Buffer);
-            if (Item && (Hit || ReadDir)) {
-                Node_t *Node = MallocK(sizeof(Node_t));
-                memset (Node, 0, sizeof(Node_t));
-
-                Node->Name = strdup (Buffer);
-                if (Item->Attr & FA_DIR)
-                    Node->Attr |= NA_DIR;
-                else if (Item->Attr & FA_ARCHIVE)
-                    Node->Attr |= NA_ARCHIVE;
-                Node->Siz = Item->FileSiz;
-
-                Node->Root = Parent->Root;
-                Node->Private.Sys = Sys;
-                Node->Private.Addr = _AddrGet (Sys, Item);                
-
-                Node->Parent = Parent;
-                Node->Child = NULL;
-
-                Node->Opts = Node->Root->Opts;
-
-                if (Parent->Child == NULL)
-                    Parent->Child = Node;
-                else {
-                    Node->Next = Parent->Child->Next;
-                    Parent->Child->Next = Node;
+        for (int i = 0 ; i < SECT_SIZ / sizeof(Entry_t) ; i++)
+        {
+            if (Entries[i].Attr & FA_LONG)
+            {
+                char *Ptr = Target;
+                size_t Siz = 0;
+                EntryLong_t *Cmp = (EntryLong_t *)&Entries[i];
+                for (int j = i ; j < SECT_SIZ / sizeof(Entry_t) ; j++)
+                {
+                    if (!_MatchNamel (Cmp, &Ptr, &Siz)) {
+                        i = j + 1;
+                        goto EntryNxt;
+                    }
+                    if (*Ptr == 0 || *Ptr == '/') {
+                        Name = MallocK (Siz);
+                        char *Ptr = Name;
+                        while (i <= j)
+                            _ParseNamel ((EntryLong_t *)&Entries[i++], &Ptr);
+                        Template = _EntryDuplicate (&Entries[j+1]);
+                        goto NodeCreate;
+                    }
+                    Cmp++;
                 }
 
-                Res = Node;
-
-                if (Hit) goto OptEnd;
+                goto NodeCreate;
             }
 
-            if (Item)
-                FreeK(Item);
+            /* If it is not a long entry, then dump its name first and compare it with `Target` */
+            char Tmp[16] = "";
+            if (_MatchName (_ParseName (&Entries[i], Tmp), Target))
+            {
+                Name = strdup (Tmp);
+                Template = _EntryDuplicate (&Entries[i]);
+                goto NodeCreate;
+            }
+
+        /* Handle the next entry we have read before */
+        EntryNxt:
+            continue;
         }
-        goto SecNxt;
-OptEnd:
-        FreeK (Sector);
+
+        /*
+           OK , all of the current entries have been handled,
+           if the next cluster index is in `Idxes`, do nothing,
+           otherwise -> Read the sector which the index locates in
+        */
+
+        /* Reaches the end */
+        if (Idxes[Curr % FAT_ALOC_NR] == FAT_EOF)
+            break;
+        if (!(ALIGN_DOWN(Curr, FAT_ALOC_NR) <= Idxes[Curr % FAT_ALOC_NR]
+              && Idxes[Curr % FAT_ALOC_NR] < ALIGN_DOWN(Curr, FAT_ALOC_NR) + FAT_ALOC_NR))
+        {
+            u32 New = Idxes[Curr % FAT_ALOC_NR];
+            Sys->Dev->BlkRead (
+                Sys->Dev,
+                Sys->FatSec + (Idxes[Curr] * sizeof(u32)) / SECT_SIZ,
+                Idxes, 1
+            );
+            Curr = New;
+        }
+
+    NodeCreate:
+        /* Basic info of node */
+        Child = MallocK(sizeof(Node_t));
+        Child->Name = Name;
+        Child->Siz = Template->FileSiz;
+        Child->Parent = Parent;
+        Child->Opts = Parent->Opts;
+        Child->Private.Sys = Parent->Private.Sys;
+        Child->Private.Addr = _AddrGet (Sys, Template);
+        Child->Attr = 0;
+        if (Template->Attr & FA_ARCHIVE)
+            Child->Attr |= NA_ARCHIVE;
+        else
+            Child->Attr |= NA_DIR;
+
+        /* Update parent node */
+        Child->Next = Parent->Child;
+        Parent->Child = Child;
+
         break;
-SecNxt:
-        FreeK (Sector);
     }
 
-    return ReadDir ? Parent : Res;
+    return Child;
 }
 
 static Node_t *Fat32_PathWalk (Node_t *Start, char *Path)
