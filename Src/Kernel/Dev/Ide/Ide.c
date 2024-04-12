@@ -5,6 +5,7 @@
 
 #include <TextOS/Dev.h>
 #include <TextOS/Dev/Ide.h>
+#include <TextOS/Memory/Malloc.h>
 
 #include <string.h>
 
@@ -19,30 +20,32 @@
 #define IDE_P_BASE 0x1F0 // Prime
 #define IDE_S_BASE 0x170 // Secondary
 
-static u16 Port;
-
-#define R_DATA (Port + 0) // 
-#define R_ERRF (Port + 1) // Error or features
-#define R_SECC (Port + 2) // Sector count
-#define R_LBAL (Port + 3) // LBA low
-#define R_LBAM (Port + 4) // LBA mid
-#define R_LBAH (Port + 5) // LBA high
-#define R_DEV  (Port + 6) // Device
-#define R_SCMD (Port + 7) // Status or cmd
+#define R_DATA (0) // 
+#define R_ERRF (1) // Error or features
+#define R_SECC (2) // Sector count
+#define R_LBAL (3) // LBA low
+#define R_LBAM (4) // LBA mid
+#define R_LBAH (5) // LBA high
+#define R_DEV  (6) // Device
+#define R_SCMD (7) // Status or cmd
 
 #define R_BCTL 0x206 // Offset of the block register
 
 typedef struct {
     char  SerialNum[21];
     char  ModelNum[41];
-    u64   Addr48;
-    Dev_t Dev;
-} Info_t;
 
-static Info_t Info;
+    u16   Port;
+    u8    Dev;
+} Private_t;
 
-#define STAT_DF  (1 << 5)
-#define STAT_BSY (1 << 7)
+#define STAT_ERR   (1 << 0) // Error
+#define STAT_IDX   (1 << 2) // Index
+#define STAT_CD    (1 << 3) // Corrected data
+#define STAT_RQRDY (1 << 4) // Data request ready
+#define STAT_WF    (1 << 5) // Drive write fault
+#define STAT_RDY   (1 << 6) // Drive ready
+#define STAT_BSY   (1 << 7) // Drive Busy
 
 //
 
@@ -78,12 +81,12 @@ __INTR_FUNC(IdeHandler)
     TaskUnblock (Curr);
 }
 
-static void _ReadSector (u16 *Data)
+static void _ReadSector (u16 Port, u16 *Data)
 {
     __asm__ volatile (
         "cld\n"
         "rep insw\n" 
-        : : "c"(256), "d"(R_DATA), "D"(Data)
+        : : "c"(256), "d"(Port + R_DATA), "D"(Data)
         : "memory"
         );
 }
@@ -98,21 +101,23 @@ void IdeRead (Dev_t *Dev, u32 Lba, void *Data, u8 Cnt)
        我们先 使用 28 位 PIO 模式练练手.
     */
     Lba &= 0xFFFFFFF;
+    
+    Private_t *Pri = Dev->Private;
 
-    while (InB(R_SCMD) & STAT_BSY) ;
+    while (InB(R_SCMD + Pri->Port) & STAT_BSY) ;
 
-    OutB(R_DEV,  DEV_PRI | DEV_LBA | (Lba >> 24)); // 选择设备并发送 LBA 的高4位
-    OutB(R_SECC, Cnt);                             // 扇区数目
-    OutB(R_LBAL, Lba & 0xFF);                      // LBA 0_7
-    OutB(R_LBAM, (Lba >> 8) & 0xFF);               // LBA 8_15
-    OutB(R_LBAH, (Lba >> 16) & 0xFF);              // LBA 16_23
-    OutB(R_SCMD, CMD_READ);                        // 读取指令
+    OutB(Pri->Port + R_DEV,  SET_DEV(Pri->Dev) | DEV_LBA | (Lba >> 24)); // 选择设备并发送 LBA 的高4位
+    OutB(Pri->Port + R_SECC, Cnt);                                       // 扇区数目
+    OutB(Pri->Port + R_LBAL, Lba & 0xFF);                                // LBA 0_7
+    OutB(Pri->Port + R_LBAM, (Lba >> 8) & 0xFF);                         // LBA 8_15
+    OutB(Pri->Port + R_LBAH, (Lba >> 16) & 0xFF);                        // LBA 16_23
+    OutB(Pri->Port + R_SCMD, CMD_READ);                                  // 读取指令
 
     Curr = TaskCurr()->Pid;
     TaskBlock();
 
     for (int i = 0 ; i < Cnt ; i++) {
-        _ReadSector (Data);
+        _ReadSector (Pri->Port, Data);
         Data += SECT_SIZ;
     }
     
@@ -147,19 +152,26 @@ static inline void _IdeWait ()
 
 #include <TextOS/Debug.h>
 
-static void _IdeIdentify ()
+static bool _IdeIdentify (Private_t **Pri, int Idx)
 {
-    Info_t Info;
-    memset (&Info, 0, sizeof(Info_t));
+    Private_t Info;
+    memset (&Info, 0, sizeof(Private_t));
 
     u16 Buffer[256];
 
-    OutB(R_DEV , SET_DEV(DEV_PRI));
-    OutB(R_SCMD, 0xEC);
+    u8  Dev  = Idx < 2 ? DEV_PRI : DEV_SEC;
+    u16 Port = Idx & 1 ? IDE_S_BASE : IDE_P_BASE;
+
+    OutB(Port + R_DEV , SET_DEV(Dev));
+    OutB(Port + R_SCMD, 0xEC);
 
     for (int i = 0 ; i < 0xFFFF ; i++) ;
 
-    _ReadSector (Buffer);
+    u8 Stat = InB(Port + R_SCMD);
+    if (Stat == 0 || Stat & STAT_ERR) // 没有这个设备, 或者错误
+        return false;                 // 中断识别
+
+    _ReadSector (Port, Buffer);
     
     for (int i = 0 ; i < 10 ; i++) {
         Info.SerialNum[i*2  ] = Buffer[ID_SN + i] >> 8;
@@ -171,27 +183,56 @@ static void _IdeIdentify ()
         Info.ModelNum[i*2+1] = Buffer[ID_MODEL + i] &  0xFF;
     }
 
+    Info.Dev = Dev;
+    Info.Port = Port;
+
     DEBUGK ("Disk sn : %s\n", Info.SerialNum);
     DEBUGK ("Disk model : %s\n", Info.ModelNum);
+    DEBUGK ("Disk port base : %#x\n", Info.Port);
+    DEBUGK ("Disk dev : %d\n", Info.Dev);
+
+    *Pri = MallocK (sizeof(Private_t));
+    memcpy (*Pri, &Info, sizeof(Private_t));
+
+    return true;
 }
 
 /* TODO : Detect all devices */
 void IdeInit ()
 {
-    Port = IDE_P_BASE;
-
-    _IdeIdentify();
-
     OutB(0x3F6, 0);
 
-    Dev_t *Dev = DevNew();
-    Dev->Name = "ATA Device";
-    Dev->Type = DEV_BLK;
-    Dev->SubType = DEV_IDE;
-    Dev->BlkRead = (void *)IdeRead; // 丝毫不费脑筋的,降低代码安全性的强制类型转换...
-    DevRegister (Dev);
+    Dev_t *Dev;
+    Private_t *Pri;
 
+    int i = 0;
+    for ( ; i < 2 ; i++) {
+        if (_IdeIdentify(&Pri, i)) {
+            Dev = DevNew();
+            Dev->Name = Pri->ModelNum;
+            Dev->Type = DEV_BLK;
+            Dev->SubType = DEV_IDE;
+            Dev->BlkRead = (void *)IdeRead; // 丝毫不费脑筋的,降低代码安全性的强制类型转换...
+            Dev->Private = Pri;
+            DevRegister (Dev);
+        }
+    }
+    
     IntrRegister (INT_MDISK, IdeHandler);
     IOApicRteSet (IRQ_MDISK, _IOAPIC_RTE(INT_MDISK));
+    
+    for ( ; i < 4 ; i++) {
+        if (_IdeIdentify(&Pri, i)) {
+            Dev = DevNew();
+            Dev->Name = Pri->ModelNum;
+            Dev->Type = DEV_BLK;
+            Dev->SubType = DEV_IDE;
+            Dev->BlkRead = (void *)IdeRead; // 丝毫不费脑筋的,降低代码安全性的强制类型转换...
+            DevRegister (Dev);
+        }
+    }
+
+    IntrRegister (INT_SDISK, IdeHandler);
+    IOApicRteSet (IRQ_SDISK, _IOAPIC_RTE(INT_SDISK));
 }
 
