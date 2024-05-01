@@ -91,6 +91,16 @@ static void _ReadSector (u16 Port, u16 *Data)
         );
 }
 
+static void _WriteSector (u16 Port, u16 *Data)
+{
+    __asm__ volatile (
+        "cld\n"
+        "rep outsw\n" 
+        : : "c"(256), "d"(Port + R_DATA), "D"(Data)
+        : "memory"
+        );
+}
+
 #include <Irq.h>
 
 void IdeRead (Dev_t *Dev, u32 Lba, void *Data, u8 Cnt)
@@ -119,6 +129,34 @@ void IdeRead (Dev_t *Dev, u32 Lba, void *Data, u8 Cnt)
     for (int i = 0 ; i < Cnt ; i++) {
         _ReadSector (Pri->Port, Data);
         Data += SECT_SIZ;
+    }
+    
+    UNINTR_AREA_END();
+}
+
+void IdeWrite (Dev_t *Dev, u32 Lba, void *Data, u8 Cnt)
+{
+    UNINTR_AREA_START();
+
+    Lba &= 0xFFFFFFF;
+    
+    Private_t *Pri = Dev->Private;
+
+    while (InB(R_SCMD + Pri->Port) & STAT_BSY) ;
+
+    OutB(Pri->Port + R_DEV,  SET_DEV(Pri->Dev) | DEV_LBA | (Lba >> 24)); // 选择设备并发送 LBA 的高4位
+    OutB(Pri->Port + R_SECC, Cnt);                                       // 扇区数目
+    OutB(Pri->Port + R_LBAL, Lba & 0xFF);                                // LBA 0_7
+    OutB(Pri->Port + R_LBAM, (Lba >> 8) & 0xFF);                         // LBA 8_15
+    OutB(Pri->Port + R_LBAH, (Lba >> 16) & 0xFF);                        // LBA 16_23
+    OutB(Pri->Port + R_SCMD, CMD_WRITE);                                 // 写入指令
+
+    for (int i = 0 ; i < Cnt ; i++) {
+        _WriteSector (Pri->Port, Data);
+        Data += SECT_SIZ;
+
+        Curr = TaskCurr()->Pid;
+        TaskBlock();
     }
     
     UNINTR_AREA_END();
@@ -213,6 +251,7 @@ void IdeInit ()
             Dev->Type = DEV_BLK;
             Dev->SubType = DEV_IDE;
             Dev->BlkRead = (void *)IdeRead; // 丝毫不费脑筋的,降低代码安全性的强制类型转换...
+            Dev->BlkWrite = (void *)IdeWrite;
             Dev->Private = Pri;
             DevRegister (Dev);
         }
@@ -228,6 +267,7 @@ void IdeInit ()
             Dev->Type = DEV_BLK;
             Dev->SubType = DEV_IDE;
             Dev->BlkRead = (void *)IdeRead; // 丝毫不费脑筋的,降低代码安全性的强制类型转换...
+            Dev->BlkWrite = (void *)IdeWrite;
             DevRegister (Dev);
         }
     }

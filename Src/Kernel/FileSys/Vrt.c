@@ -108,6 +108,20 @@ int __VrtFs_Read (Node_t *This, void *Buffer, size_t Siz, size_t Offset)
 
     return Res;
 }
+    
+int __VrtFs_Write (Node_t *This, void *Buffer, size_t Siz, size_t Offset)
+{
+    if (~This->Attr & NA_ARCHIVE)
+            return -EISDIR;
+
+    int Res = This->Opts->Write (This, Buffer, Siz, Offset);
+    if (Res >= 0)
+        DEBUGK ("Write %s successfully! - WriteSiz : %llu\n", This->Name, Res);
+    else
+        DEBUGK ("Failed to write %s - stat : %d\n", This->Name, Res);
+
+    return Res;
+}
 
 int __VrtFs_Close (Node_t *This)
 {
@@ -153,7 +167,7 @@ void __VrtFs_ListNode (Node_t *Start)
 extern FS_INITIALIZER ( __FsInit_Fat32);
 
 static Regstr_t Regstr[] = {
-    {
+    [FS_FAT32] = {
         .Name = "Fat32",
         .Id = 0xc,
         .Init = __FsInit_Fat32
@@ -206,9 +220,11 @@ void InitFileSys ()
     FreeK (Record);
 
     PrintK ("File system initialized!\n");
+    
     Node_t *File;
-    char Buffer[17];
-    __VrtFs_Open (NULL, &File, "/EFI/Boot/BootX64.efi", O_READ);
-    __VrtFs_Read (File, Buffer, 16, 0);
+    
+    char Buffer[1024] = "1145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191451419191114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919145141919111451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145141919114514191911451419191145";
+    __VrtFs_Open (NULL, &File, "/test.txt", O_READ | O_CREATE);
+    __VrtFs_Write (File, Buffer, 513, 0);
 }
 
