@@ -12,6 +12,8 @@ Stack_t *StackInit (Stack_t *Stack)
 
     Stack->Siz = 0;
     Stack->Top = NULL;
+
+    Stack->Pop = NULL;
     Stack->Clearner = NULL;
 
     return Stack;
@@ -82,5 +84,25 @@ bool StackEmpty (Stack_t *Stack)
 size_t StackSiz (Stack_t *Stack)
 {
     return Stack->Siz;
+}
+
+//
+
+StackIter_t *StackIter (Stack_t *Stack)
+{
+    return (StackIter_t *)Stack->Top;
+}
+
+void *StackIterDef (StackIter_t *Iter)
+{
+    Elem_t *Elem = (Elem_t *)Iter;
+    return Elem->Payload;
+}
+
+StackIter_t *StackIterNext (StackIter_t **Iter)
+{
+    Elem_t *Elem = (Elem_t *)*Iter;
+    *Iter = (StackIter_t *)Elem->Next;
+    return *Iter;
 }
 

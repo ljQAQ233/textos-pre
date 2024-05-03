@@ -51,7 +51,9 @@ extern void InitFileSys ();
 
 static void __ProcInit ()
 {
+    UNINTR_AREA_START();
     InitFileSys();
+    UNINTR_AREA_END();
 
     while (true) TaskYield();
 }

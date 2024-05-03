@@ -38,3 +38,15 @@ bool StackEmpty (Stack_t *Stack);
 /* return the number of elements in this `Stack` */
 size_t StackSiz (Stack_t *Stack);
 
+//
+
+typedef struct {
+    void *Pri;
+} StackIter_t;
+
+StackIter_t *StackIter (Stack_t *Stack);
+
+void *StackIterDef (StackIter_t *Iter);
+
+StackIter_t *StackIterNext (StackIter_t **Iter);
+

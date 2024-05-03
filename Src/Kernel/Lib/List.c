@@ -44,6 +44,12 @@ void ListRemove (List_t *List)
     List->Back->Forward = List->Forward;
 }
 
+void ListClear (List_t *List)
+{
+    while (!ListEmpty (List))
+        ListRemove (List->Back);
+}
+
 bool ListEmpty (List_t *List)
 {
     return List == List->Forward ? true : false;
