@@ -18,16 +18,19 @@ enum {
     O_DIR    = 0x08,
 };
 
-
 struct _Node;
 typedef struct _Node Node_t;
 
 typedef struct {
-    Node_t * (*Open)(Node_t *This, char *Path, u64 Args);
-    int      (*Read)(Node_t *This, void *Buffer, size_t Siz, size_t Offset);
-    int      (*Write)(Node_t *This, void *Buffer, size_t Siz, size_t Offset);
-    int      (*Close)(Node_t *This);
-    int      (*Erase)(Node_t *This);
+    int  (*Open)(Node_t *Parent, char *Path, u64 Args, Node_t **Result);
+    int  (*Close)(Node_t *This);
+    int  (*Remove)(Node_t *This);
+    /* 文件操作 */
+    int  (*Read)(Node_t *This, void *Buffer, size_t Siz, size_t Offset);
+    int  (*Write)(Node_t *This, void *Buffer, size_t Siz, size_t Offset);
+    int  (*Truncate)(Node_t *This, size_t Offset);
+    /* 文件夹操作 */
+    int  (*ReadDir)(Node_t *This);
 } FsOpts_t;
 
 struct _Node {
@@ -55,5 +58,23 @@ struct _Node {
 
     u64 OpenArgs;
 };
+
+extern int __VrtFs_Open (Node_t *Parent, Node_t **Node, const char *Path, u64 Args);
+
+extern int __VrtFs_Read (Node_t *This, void *Buffer, size_t Siz, size_t Offset);
+
+extern int __VrtFs_Write (Node_t *This, void *Buffer, size_t Siz, size_t Offset);
+
+extern int __VrtFs_Close (Node_t *This);
+
+extern int __VrtFs_Remove (Node_t *This);
+
+extern int __VrtFs_Truncate (Node_t *This, size_t Offset);
+
+extern int __VrtFs_Release (Node_t *This);
+
+extern int __VrtFs_ReadDir (Node_t *This);
+
+extern Node_t *__VrtFs_Test (Node_t *Start, char *Path, Node_t **Last, char **LastPath);
 
 #endif
