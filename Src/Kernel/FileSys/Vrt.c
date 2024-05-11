@@ -43,23 +43,36 @@ static bool _Cmp (char *A, char *B)
 
 Node_t *__VrtFs_Test (Node_t *Start, char *Path, Node_t **Last, char **LastPath)
 {
-    for (Node_t *Ptr = Start->Child ; Ptr ; Ptr = Ptr->Next)
-        if (_Cmp (Ptr->Name, Path))
-        {
-            char *Nxt = _Next(Path);
-            if (Nxt[0] == '\0')
-                return Ptr; 
-            if (~Ptr->Attr & NA_DIR)
-                break;
-            return __VrtFs_Test (Ptr->Child, Nxt, Last, LastPath);
-        }
+    Node_t *Res = NULL,
+           *Curr = Start;
 
+    for ( ; ; ) {
+        for (Node_t *Ptr = Curr->Child ;  ; Ptr = Ptr->Next) {
+            if (!Ptr)
+                goto Fini;
+
+            if (_Cmp (Ptr->Name, Path)) {
+                char *Nxt = _Next(Path);
+                if (Nxt[0] == 0) {
+                    Res = Ptr;
+                    goto Fini;
+                }
+                Path = Nxt;
+                Curr = Ptr;
+                break;
+            } else {
+                continue;
+            }
+        }
+    }
+
+Fini:
     if (Last)
-        *Last = Start;
+        *Last = Curr;
     if (LastPath)
         *LastPath = Path;
-
-    return NULL;
+    
+    return Res;
 }
 
 /* return-value for interfaces */
@@ -204,13 +217,14 @@ static inline void _VrtFs_ListNode (Node_t *Node, int Level)
             _VrtFs_ListNode (p, Level + 1);
         }
     } else {
-        for (int i = 0 ; i < Level ; i++) PrintK (" ");
         PrintK ("%*q- %s\n", Level, ' ', Node->Name);
     }
 }
 
 void __VrtFs_ListNode (Node_t *Start)
 {
+    if (!Start) Start = _Root;
+
     _VrtFs_ListNode (Start, 0);
 }
 
@@ -273,12 +287,14 @@ void InitFileSys ()
 
     PrintK ("File system initialized!\n");
     
-    Node_t *File;
+    Node_t *File, *Dir;
     
     char Buffer[1024] = "Hello world!";
-    __VrtFs_Open (NULL, &File, "/test.txt", O_READ | O_CREATE);
+    __VrtFs_Open (NULL, &Dir, "/TEST", O_READ | O_CREATE | O_DIR);
+    __VrtFs_Open (NULL, &File, "/TEST/test.txt", O_READ | O_CREATE);
     __VrtFs_Write (File, Buffer, 12, 0);
     __VrtFs_Truncate (File, 10000);
     __VrtFs_ReadDir (NULL);
+    __VrtFs_ListNode (NULL);
 }
 

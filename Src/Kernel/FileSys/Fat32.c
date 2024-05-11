@@ -118,22 +118,18 @@ typedef struct
 #include <TextOS/Lib/List.h>
 #include <TextOS/Lib/Stack.h>
 
-/*
-  NOTE / TODO: Cluster 对于不同的 FAT32 可能表示的扇区个数不同,
-               当前实现默认 1 个簇 包含一个扇区!
-*/
-
 #include <TextOS/Dev/Ide.h>
 #include <TextOS/Memory/Malloc.h>
 
 #include <TextOS/ErrNo.h>
 #include <TextOS/Debug.h>
+#include <TextOS/Panic.h>
 #include <TextOS/Assert.h>
 
-static int Fat32_Open  (Node_t *Parent, char *Path, u64 Args, Node_t **Result);
+static int Fat32_Open (Node_t *Parent, char *Path, u64 Args, Node_t **Result);
 static int Fat32_Close (Node_t *This);
 static int Fat32_Remove (Node_t *This);
-static int Fat32_Read  (Node_t *This, void *Buffer, size_t Siz, size_t Offset);
+static int Fat32_Read (Node_t *This, void *Buffer, size_t Siz, size_t Offset);
 static int Fat32_Write (Node_t *This, void *Buffer, size_t Siz, size_t Offset);
 static int Fat32_Truncate (Node_t *This, size_t Offset);
 static int Fat32_ReadDir (Node_t *This);
@@ -246,7 +242,6 @@ typedef struct
         List_t List;      // 描述各个 entry 位于哪个簇, 是第几个 entry
     } Locator;
     Stack_t Stack;        // entry 栈
-    Stack_t Child;        // (optional) 对于一个目录, 是它下面的 entry 堆积成的栈
     Node_t  *Node;        // entry 被解析后生成的 vfs node
 } Lookup_t;
 
@@ -283,12 +278,18 @@ static size_t _ExpandPart (Node_t *This, size_t Cnt, bool Append);
       - vfs 环境 (所处的文件系统信息) -> Sys
 */
 static Lookup_t *_LookupEntry (Lookup_t *Parent, char *Target, size_t Idx);
-/*
-    三种情况:
-      - 写入 -> 传入 Origin & Update
-      - 擦除 -> Update == NULL
-*/
-static void      _LookupSave (Lookup_t *Origin, Stack_t *Update);
+
+enum {
+    LKPS_NONE   = 0x00,
+    LKPS_UPDATE = 0x01,
+    LKPS_CREATE = 0x02,
+    LKPS_CHILD  = 0x04,
+    LKPS_ERASE  = 0x08
+};
+
+static void      _LookupSave (Lookup_t *Lkp, Stack_t *Update, int Opt);
+
+//
 
 static Entry_t *_EntryDuplicate (Entry_t *Ori)
 {
@@ -522,19 +523,24 @@ Make:
     /* 开始填充 */
     _Exti = 0;
     _Namei = 0;
-    for (int i = ExtStart ; i < Len ; i++) {
-        char Append = 0;
-        switch (Name[i]) {
-            case ' ':
-                continue;
+    if (ExtStart != 0) {
+        for (int i = ExtStart ; i < Len ; i++) {
+            char Append = 0;
+            switch (Name[i]) {
+                case ' ':
+                    continue;
 
-            default:
-                Append = UPPER_CASE(Name[i]);
-            break;
+                default:
+                    Append = UPPER_CASE(Name[i]);
+                break;
+            }
+
+            if (_Exti < LEN_NAME)
+                _Ext[_Exti++] = Append;
         }
-
-        if (_Exti < LEN_NAME)
-            _Ext[_Exti++] = Append;
+    } else {
+        /* 不阻挡 Name 的初始化 */
+        ExtStart = 0xff;
     }
 
     for (int i = NameStart ; i < Len && i < ExtStart ; i++) {
@@ -658,11 +664,7 @@ static void _LookupAlloc (Lookup_t *Parent, Lookup_t *Lkp, Stack_t *Stack)
     u32 *Idxes = MallocK (SECT_SIZ);
     u32 Curr = Parent->Locator.Cluster;
     u32 Prev = Parent->Locator.Cluster;
-    Sys->Dev->BlkRead (
-        Sys->Dev,
-        TAB_IS(Sys, Curr),
-        Idxes, 1
-    );
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
 
     size_t StartIdx = 0, CurrIdx  = 0;
 
@@ -747,11 +749,7 @@ static Lookup_t *_LookupEntry (Lookup_t *Parent, char *Target, size_t Idx)
     Info_t *Sys = Parent->Sys;
     u32 Curr = Parent->Locator.Cluster;
     u32 *Idxes = MallocK (SECT_SIZ);
-    Sys->Dev->BlkRead (
-        Sys->Dev,
-        TAB_IS(Sys, Curr),
-        Idxes, 1
-    );
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
 
     while (true)
     {
@@ -863,11 +861,7 @@ static void _LookupAll (Lookup_t *Parent, Stack_t *Child)
     Info_t *Sys = Parent->Sys;
     u32 Curr = Parent->Locator.Cluster;
     u32 *Idxes = MallocK (SECT_SIZ);
-    Sys->Dev->BlkRead (
-        Sys->Dev,
-        TAB_IS(Sys, Curr),
-        Idxes, 1
-    );
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
 
     while (true)
     {
@@ -891,18 +885,13 @@ static void _LookupAll (Lookup_t *Parent, Stack_t *Child)
               && Idxes[Curr % FAT_ALOC_NR] < ALIGN_DOWN(Curr, FAT_ALOC_NR) + FAT_ALOC_NR))
         {
             u32 New = Idxes[Curr % FAT_ALOC_NR];
-            Sys->Dev->BlkRead (
-                Sys->Dev,
-                TAB_IS(Sys, Idxes[Curr]),
-                Idxes, 1
-            );
+            Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Idxes[Curr]), Idxes, 1);
             Curr = New;
         } else {
             Curr = Idxes[Curr % FAT_ALOC_NR];
         }
 
         continue;
-    
     Brk:
         FreeK (Entries);
         break;
@@ -934,11 +923,57 @@ static void _LookupSave_Common (Lookup_t *Origin, Stack_t *Update)
 
         ASSERTK (Locator->Idx < 16);
         ASSERTK (StackSiz (Update) != 0);
-        Entry_t *Mod = StackTop (Update);
-        memcpy (&Entries[Locator->Idx], Mod, sizeof(Entry_t));
+        Entry_t *Member = StackTop (Update);
+        memcpy (&Entries[Locator->Idx], Member, sizeof(Entry_t));
         StackPop (Update);
     }
     Sys->Dev->BlkWrite (Sys->Dev, DUMP_IS(Sys, Prev), Entries, 1);
+}
+
+static void _LookupSave_Child (Lookup_t *Origin, Stack_t *Child)
+{
+    Info_t *Sys = Origin->Sys;
+    u32 Curr = Origin->Locator.Cluster;
+    u32 *Idxes = MallocK (SECT_SIZ);
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
+
+    while (true)
+    {
+        Entry_t *Entries = MallocK (SECT_SIZ);
+        Sys->Dev->BlkRead (Sys->Dev, DUMP_IS(Sys, Curr), Entries, 1);
+
+        for (int i = 0 ; i < SECT_SIZ / sizeof(Entry_t) ; i++)
+        {
+            if (!StackEmpty (Child)) {
+                void *Member = StackTop (Child);
+                memcpy (&Entries[i], Member, sizeof(Entry_t));
+                StackPop (Child);
+            } else {
+                memset (&Entries[i], 0, sizeof(Entry_t));
+            }
+        }
+        Sys->Dev->BlkWrite (Sys->Dev, DUMP_IS(Sys, Curr), Entries, 1);
+
+        if (Idxes[Curr % FAT_ALOC_NR] == FAT_EOF)
+            goto Brk;
+        if (!(ALIGN_DOWN(Curr, FAT_ALOC_NR) <= Idxes[Curr % FAT_ALOC_NR]
+              && Idxes[Curr % FAT_ALOC_NR] < ALIGN_DOWN(Curr, FAT_ALOC_NR) + FAT_ALOC_NR))
+        {
+            u32 New = Idxes[Curr % FAT_ALOC_NR];
+            Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Idxes[Curr]), Idxes, 1);
+            Curr = New;
+        } else {
+            Curr = Idxes[Curr % FAT_ALOC_NR];
+        }
+
+        continue;
+    
+    Brk:
+        FreeK (Entries);
+        break;
+    }
+
+    FreeK (Idxes);
 }
 
 /* Erase entries which `Origin`'s list describes */
@@ -955,11 +990,12 @@ static void _LookupSave_Erase (Lookup_t *Origin)
         Locate_t *Locator = CR (Ptr, Locate_t, List);
         if (Prev != Locator->Cluster) {
             /* 准备进入下一个扇区, 先保存 */
-            if (Prev) {
-                Sys->Dev->BlkWrite (Sys->Dev, DUMP_IS(Sys, Prev), Entries, 1);
+            if (!Prev) {
+                Prev = Locator->Cluster;
+                Sys->Dev->BlkRead (Sys->Dev, DUMP_IS(Sys, Prev), Entries, 1);
             }
-            Prev = Locator->Cluster;
-            Sys->Dev->BlkRead (Sys->Dev, DUMP_IS(Sys, Prev), Entries, 1);
+            
+            Sys->Dev->BlkWrite (Sys->Dev, DUMP_IS(Sys, Prev), Entries, 1);
         }
 
         ASSERTK (Locator->Idx < 16);
@@ -968,25 +1004,41 @@ static void _LookupSave_Erase (Lookup_t *Origin)
     Sys->Dev->BlkWrite (Sys->Dev, DUMP_IS(Sys, Prev), Entries, 1);
 }
 
-static void _LookupSave (Lookup_t *Lkp, Stack_t *Update)
+/*
+    当 Opt == LKPS_CHILD, Stack 代表 Lkp目录 的子项组成的栈
+*/
+static void _LookupSave (Lookup_t *Lkp, Stack_t *Stack, int Opt)
 {
-    if (Update == NULL)
-        _LookupSave_Erase (Lkp);
+    ASSERTK (Opt != LKPS_NONE);
 
+    if (Opt == LKPS_ERASE)
+    {
+        ASSERTK (Stack == NULL);
+        _LookupSave_Erase (Lkp);
+    }
     /* Write an entry created */
-    else if (StackSiz (&Lkp->Stack) == 0)
-        _LookupSave_Common (Lkp, Update);
-
+    else if (Opt == LKPS_CREATE)
+    {
+        ASSERTK (StackSiz (&Lkp->Stack) == 0);
+        _LookupSave_Common (Lkp, Stack);
+    }
+    else if (Opt == LKPS_CHILD)
+    {
+        _LookupSave_Child (Lkp, Stack);
+    }
     /* Overwrite the original */
-    else if (StackSiz (&Lkp->Stack) == StackSiz (Update))
-        _LookupSave_Common (Lkp, Update);
-
-    else /* space may be too small */ {
-        _LookupSave_Erase (Lkp);
-        ASSERTK (Lkp->Node->Parent != NULL);
-        Lookup_t *Prt = LKP_ORI(Lkp->Node->Parent);
-        _LookupAlloc (Prt, Lkp, Update);
-        _LookupSave  (Lkp, Update);
+    else if (Opt == LKPS_UPDATE)
+    {
+        if (StackSiz (&Lkp->Stack) == StackSiz (Stack)) {
+            _LookupSave_Common (Lkp, Stack);
+        }
+        else { /* space will be taken up may be too small, in spite of the original */
+            _LookupSave_Erase (Lkp);
+            ASSERTK (Lkp->Node->Parent != NULL);
+            Lookup_t *Prt = LKP_ORI(Lkp->Node->Parent);
+            _LookupAlloc (Prt, Lkp, Stack);
+            _LookupSave  (Lkp, Stack, Opt);
+        }
     }
 }
 
@@ -998,52 +1050,57 @@ static void _ComSync (Node_t *Before, Node_t *After)
     Origin->Sys = Parent->Sys;
 
     Stack_t *Stack = _MakeEntry (After);
-    _LookupSave (Origin, Stack);
+    _LookupSave (Origin, Stack, LKPS_UPDATE);
 }
 
-/* Create before sync */
-static void _NewSync (Node_t *Before, Node_t *After)
-{
-    /* Write our child node into disk (media) */
-    Lookup_t *Prt = LKP_ORI(After->Parent);
-    Lookup_t *Lkp = LKP_ORI(After);
-    Stack_t *Stack = _MakeEntry (After);
-    _LookupAlloc (Prt, Lkp, Stack);
-    _LookupSave  (Lkp, Stack);
-}
-
-static Node_t *_Create (
-        Node_t *Parent,
-        char *Name, size_t Siz, int Attr, u64 Addr
-        )
+static Node_t *_Create (Node_t *Parent, char *Name, size_t Siz, int Attr, u64 Addr)
 {
     Node_t *Child = MallocK (sizeof(Node_t));
+    memset (Child, 0, sizeof(Node_t));
+
     Child->Private.Sys     = Parent->Private.Sys;
     Child->Private.SysType = Parent->Private.SysType;
-    Child->Parent = Parent;
-    Child->Opts = Parent->Opts;
+    Child->Opts   = Parent->Opts;
 
     Child->Name = Name;
     Child->Attr = Attr;
     Child->Siz  = Siz;
     Child->Private.Addr = Addr;
     
-    /* Update parent's child nodes */
+    /* Update parent's & child's nodes */
     Child->Next = Parent->Child;
     Parent->Child = Child;
+    Child->Parent = Parent;
 
     Child->Siz = 0;
     /* Allocate an address when it's about to be written */
     Child->Private.Addr = 0;
-    // _NewSync (NULL, Child);
+    if (Child->Attr & NA_DIR)
+        Child->Private.Addr = _AllocPart (Child->Private.Sys);
 
     /* Write our child node into disk (media) */
     Lookup_t *Prt = LKP_ORI(Parent);
     Lookup_t *Lkp = LKP_ORI(Child);
+
     Stack_t *Stack = _MakeEntry (Child);
     _LookupAlloc (Prt, Lkp, Stack);
-    _LookupSave  (Lkp, Stack);
+    _LookupSave  (Lkp, Stack, LKPS_CREATE);
+    
+    /* 目录开头是需要一些预设的 entry 的, 比如 '.' '..' */
+    if (Child->Attr & NA_DIR) {
+        Lookup_t *LkpChild = LKP_ORI(Child);
+        Stack_t *Init = StackInit (NULL);
 
+        Entry_t Head_1 = { ".          ", FA_DIR, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        Entry_t Head_2 = { "..         ", FA_DIR, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        StackPush(Init, &Head_2);
+        StackPush(Init, &Head_1);
+        _LookupSave (LkpChild, Init, LKPS_CHILD);
+            
+        StackFini (Init);
+    }
+
+    StackFini (Stack);
     return Child;
 }
 
@@ -1100,9 +1157,6 @@ static Node_t *Fat32_PathWalk (Node_t *Start, char **Path, Node_t **Last)
     Res->Next = Start->Child;
     Start->Child = Res;
 
-    // TODO : replace it!
-    // if (Res->Attr & NA_DIR)
-    //     Res = _LookupEntry (*Last, "");
 End:
     return Res;
 }
@@ -1170,11 +1224,7 @@ static int _ReadContent (Node_t *This, void *Buffer, size_t ReadSiz, size_t Offs
     
     u32 *Idxes = MallocK (Sys->Record->SecSiz);
     u32 Curr = DUMP_IC(Sys, This->Private.Addr);
-    Sys->Dev->BlkRead (
-        Sys->Dev,
-        TAB_IS(Sys, Curr),
-        Idxes, 1
-    );
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
 
     size_t SectOffset = Offset / SECT_SIZ,
            ByteOffset = Offset % SECT_SIZ;
@@ -1236,11 +1286,7 @@ static size_t _AllocPart (Info_t *Sys)
 
     size_t Res = 0 , Curr = DUMP_IC(Sys, Sys->FirstDataSec);
     for ( ; ; ) {
-        Sys->Dev->BlkRead (
-            Sys->Dev,
-            TAB_IS(Sys, Curr),
-            Idxes, 1
-        );
+        Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
 
         for (int i = Curr % FAT_ALOC_NR ; i < FAT_ALOC_NR ; i++, Curr++) {
             if (Idxes[i] == 0) {
@@ -1280,11 +1326,7 @@ static size_t _ExpandPart (Node_t *This, size_t Cnt, bool Append)
     Curr = DUMP_IC(Sys, This->Private.Addr);
     CurIdxes = MallocK (SECT_SIZ);
 
-    Sys->Dev->BlkRead (
-        Sys->Dev,
-        TAB_IS(Sys, Curr),
-        CurIdxes, 1
-    );
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), CurIdxes, 1);
 
     while (CurIdxes[Curr % FAT_ALOC_NR] != FAT_EOF)
     {
@@ -1314,31 +1356,19 @@ static size_t _ExpandPart (Node_t *This, size_t Cnt, bool Append)
         if (Curr % FAT_ALOC_NR == 0) {
             if (CurIdxes == EndIdxes)
                 CurIdxes = MallocK (SECT_SIZ);
-            Sys->Dev->BlkRead (
-                Sys->Dev,
-                TAB_IS(Sys, Curr),
-                CurIdxes, 1
-            );
+            Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), CurIdxes, 1);
         }
 
         /* Check if it is an available FAT1 entry */
         if (!CurIdxes[Curr % FAT_ALOC_NR]) {
             void *Zero = MallocK (SECT_SIZ);
             memset (Zero, 0, SECT_SIZ);
-            Sys->Dev->BlkWrite (
-                Sys->Dev,
-                DUMP_IS(Sys, Curr),
-                Zero, 1
-            );
+            Sys->Dev->BlkWrite (Sys->Dev, DUMP_IS(Sys, Curr), Zero, 1);
 
             EndIdxes[End % FAT_ALOC_NR] = Curr;
             if (EndIdxes != CurIdxes) {
                 /* Save changes to disk */
-                Sys->Dev->BlkWrite (
-                    Sys->Dev,
-                    TAB_IS(Sys, End),
-                    EndIdxes, 1
-                );
+                Sys->Dev->BlkWrite (Sys->Dev, TAB_IS(Sys, End), EndIdxes, 1);
 
                 /* 这个空闲项已经作为一个节点链接到上一个索引, 也就是上一个结尾, 此时的结尾应该被更新 */
                 FreeK (EndIdxes);    // EndIdxes != CurIdxes
@@ -1394,11 +1424,7 @@ static int _WriteContent (Node_t *This, void *Buffer, size_t WriteSiz, size_t Of
 
     u32 *Idxes = MallocK (SECT_SIZ);
     u32 Curr = DUMP_IC(Sys, This->Private.Addr);
-    Sys->Dev->BlkRead (
-        Sys->Dev,
-        TAB_IS(Sys, Curr),
-        Idxes, 1
-    );
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
 
     size_t SectOffset = Offset / SECT_SIZ,
            ByteOffset = Offset % SECT_SIZ;
@@ -1409,11 +1435,7 @@ static int _WriteContent (Node_t *This, void *Buffer, size_t WriteSiz, size_t Of
     {
         if (i >= SectOffset) {
             void *Ori = MallocK (SECT_SIZ);
-            Sys->Dev->BlkRead (
-                Sys->Dev,
-                DUMP_IS(Sys, Curr),
-                Ori, 1
-            );
+            Sys->Dev->BlkRead (Sys->Dev, DUMP_IS(Sys, Curr), Ori, 1);
 
             /* MIN 的意义在于 : WriteSiz 可能比一个扇区的大小要小 */
             size_t CpySiz = MIN(Siz, ByteOffset != 0 ? SECT_SIZ - ByteOffset : MIN(Siz, SECT_SIZ));
@@ -1474,11 +1496,7 @@ static void _ReleaseData (Info_t *Sys, u32 Start, bool Cut)
 {
     u32 *Idxes = MallocK (SECT_SIZ);
     u32 Curr = Start;
-    Sys->Dev->BlkRead (
-        Sys->Dev,
-        TAB_IS(Sys, Curr),
-        Idxes, 1
-    );
+    Sys->Dev->BlkRead (Sys->Dev, TAB_IS(Sys, Curr), Idxes, 1);
 
     u32 Stat = Cut ? FAT_EOF : 0;
     
@@ -1506,21 +1524,16 @@ static void _ReleaseData (Info_t *Sys, u32 Start, bool Cut)
     FreeK (Idxes);
 }
 
-static void _Erase (Node_t *Target)
+static int Fat32_Remove (Node_t *This)
 {
-    Info_t *Sys = Target->Private.Sys;
+    Info_t *Sys = This->Private.Sys;
 
-    Lookup_t *Prt = LKP_ORI (Target->Parent);
-    Lookup_t *Lkp = _LookupEntry (Prt, Target->Name, 0);
-    _LookupSave (Lkp, NULL);
+    Lookup_t *Prt = LKP_ORI (This->Parent);
+    Lookup_t *Lkp = _LookupEntry (Prt, This->Name, 0);
+    _LookupSave (Lkp, NULL, LKPS_ERASE);
 
     /* 释放数据区 */
     _ReleaseData (Lkp->Sys, Lkp->Locator.Cluster, false);
-}
-
-static int Fat32_Remove (Node_t *This)
-{
-    _Erase (This);
     return Fat32_Close (This);
 }
 
@@ -1568,7 +1581,7 @@ static int Fat32_ReadDir (Node_t *This)
         ASSERTK (Lkp->Node != NULL);
 
         Node_t *Child = Lkp->Node;
-        if (__VrtFs_Test(This, Child->Name, NULL, NULL)) {
+        if (__VrtFs_Test (This, Child->Name, NULL, NULL)) {
             __VrtFs_Release (Child);
         } else {
             /* 物理文件系统 "无关" 的基本信息 */
