@@ -16,6 +16,7 @@ extern void TaskInit ();
 extern void DevInit ();
 extern void KeyboardInit ();
 extern void IdeInit ();
+extern void ClockInit ();
 
 static void __ProcInit ();
 
@@ -37,12 +38,13 @@ void KernelMain ()
     DevInit();
     KeyboardInit();
     IdeInit();
+    ClockInit();
 
-    TaskInit();
-
-    Task_t *Tmp = TaskCreate(__ProcInit);
-    
-    IntrStateEnable();
+    // TaskInit();
+    //
+    // Task_t *Tmp = TaskCreate(__ProcInit);
+    //
+    // IntrStateEnable();
 
     while (true);
 }
