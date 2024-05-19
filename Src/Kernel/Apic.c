@@ -105,8 +105,8 @@ void InitializeApic ()
 
     PitSleep (10);
 
-    LAPIC_SET(LAPIC_TICR, 0xFFFFFFFF - LAPIC_GET(LAPIC_TCCR)); // 计算 100ms 的 ticks
-    LAPIC_SET(LAPIC_TM, S_TM(TM_PERIODIC, INT_TIMER));         // 步入正轨, 每 100ms 产生一次时钟中断
+    LAPIC_SET(LAPIC_TICR, 0xFFFFFFFF - LAPIC_GET(LAPIC_TCCR)); // 计算 10ms 的 ticks
+    LAPIC_SET(LAPIC_TM, S_TM(TM_PERIODIC, INT_TIMER));         // 步入正轨, 每 10ms 产生一次时钟中断
     IntrRegister (INT_TIMER, TimerHandler);                    // 注册中断函数
 }
 
