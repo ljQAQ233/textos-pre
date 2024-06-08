@@ -86,7 +86,8 @@ void InitializeApic ()
 
     PicDisable(); // 某种意义上,这是废话,大家不要理它...
 
-    WriteMsr (IA32_APIC_BASE, ((u64)LApic << 12) | (1 << 11));
+    // TODO: replace it
+    // WriteMsr (IA32_APIC_BASE, ((u64)LApic << 12) | (1 << 11));
 
     IntrRegister (INT_LAPIC_ERR, (IntrCaller_t)LApicErrHandler);
     IntrRegister (INT_LAPIC_SPS, (IntrCaller_t)LApicSpuriousHandler);
