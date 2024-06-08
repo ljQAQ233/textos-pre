@@ -32,7 +32,7 @@ static int _TaskFree ()
 }
 
 /* Register tasks into table */
-static Task_t *_TaskCreate ()
+static Task_t *_TaskCreate (u32 Args)
 {
     int Pid;
     Task_t *Task;
@@ -40,7 +40,10 @@ static Task_t *_TaskCreate ()
     if ((Pid = _TaskFree()) < 0)
         return NULL;
 
-    Task = VMM_AllocPages (TASK_PAGE, PE_P | PE_RW);
+    u16 PageFlgs = PE_P | PE_RW;
+    if (Args & TC_USER)
+        PageFlgs |= PE_US;
+    Task = VMM_AllocPages (TASK_PAGE, PageFlgs);
     Task->Pid = Pid;
 
     Table[Pid] = Task;
@@ -58,30 +61,39 @@ static _ofp void _TaskStart ()
         );
 }
 
-Task_t *TaskCreate (void *Main)
+Task_t *TaskCreate (void *Main, u32 Args)
 {
-    Task_t *Task = _TaskCreate();
+    Task_t *Task = _TaskCreate (Args);
 
-    void *Stack = (void *)Task + TASK_SIZ;
-    TaskFrame_t *Frame = Stack - sizeof(TaskFrame_t);
-    
-    Task->Init.Main = Main;
+    if (Args & TC_INIT) {
 
-    Frame->rbp = (u64)Stack;
-    Frame->rip = (u64)_TaskStart;
+        void *Stack = (void *)Task + TASK_SIZ;
+        TaskFrame_t *Frame = Stack - sizeof(TaskFrame_t);
+        
+        Task->Init.Main = Main;
+        Task->Init.Rbp  = Frame;
 
-    Task->Frame = Frame;
-    Task->Stat  = TASK_PRE;
+        Frame->rbp = (u64)Stack;
+        Frame->rip = (u64)_TaskStart;
+
+        Task->Frame = Frame;
+        Task->Stat  = TASK_PRE;
+    } else {
+        Task->Stat = TASK_RUN;
+    }
 
     Task->Tick = TASK_TICKS;
     Task->Curr = TASK_TICKS;
+
+    memset (Task->Fm.File, 0, sizeof(Task->Fm.File));
 
     return Task;
 }
 
 static void _TaskKernel ()
 {
-    TaskCreate (NULL)->Stat = TASK_RUN;
+    Task_t *Krn = TaskCreate (NULL, TC_KERN);
+    ASSERTK (Krn->Pid == PID_KERNEL);
 }
 
 static int _Curr;

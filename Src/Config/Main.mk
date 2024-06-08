@@ -29,6 +29,8 @@ else
   # QEMU    = $(QEMU_BINARY)/qemu-system-i386
 endif
 
+APP_OUTPUT     := $(OUTPUT)/App
+
 SHELL  := bash
 SUDO   := echo q | sudo -S
 # including password !!!
@@ -41,4 +43,4 @@ UTILS  := $(abspath ${UTILS})
 export DEBUG
 export CC NASM SHELL TERM SUDO
 export SRC_DIR BASE UTILS
-export BOOT_OUTPUT BOOT_EXEC KERNEL_OUTPUT KERNEL_EXEC IMG_EFI
+export BOOT_OUTPUT BOOT_EXEC KERNEL_OUTPUT KERNEL_EXEC APP_OUTPUT IMG_EFI
