@@ -15,6 +15,8 @@ include Graphics/Graphics.mk
 
 include FileSys/FileSys.mk
 
+include User/User.mk
+
 include Lib/Lib.mk
 include Stdlib/Stdlib.mk
 

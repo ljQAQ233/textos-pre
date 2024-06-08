@@ -77,6 +77,10 @@ _MapWalk (u64 Phy, u64 Vrt, u16 Flgs, u64 *Tab, int Level, int Mode)
         New = _ReEntryGet(Vrt, Level - 1);
         memset (New, 0, PAGE_SIZ);
     }
+
+    if (Flgs & PE_US)
+        Tab[Idx] |= PE_US;
+
     Tab = (u64 *)_ReEntryGet(Vrt, Level - 1);
 
     _MapWalk (Phy, Vrt, Flgs, Tab, --Level, Mode);

@@ -14,7 +14,7 @@ ifneq ($(findstring qemubg,${MAKECMDGOALS}),)
 endif
 
 .PHONY: all
-all: _BootUpdate Kernel Image
+all: _BootUpdate Kernel App Image
 
 include Config/Qemu.mk
 
@@ -39,6 +39,12 @@ Kernel:
 	@make -C Kernel
 	@echo -e "Kernel Module was completed\n"
 
+.PHONY: App
+App:
+	@echo -e "Start to Compile App Module...\n"
+	@make -C App App
+	@echo -e "App Module was completed\n"
+
 .PHONY: Image
 Image:
 	@mkdir -p $(IMG_MDIR)
@@ -53,6 +59,7 @@ Image:
 	@$(SUDO) mkdir -p $(IMG_MDIR)/EFI/Boot/
 	@$(SUDO) cp $(BOOT_EXEC) $(IMG_MDIR)/EFI/Boot/$(OUT_EFI)
 	@$(SUDO) cp -rf Resources/* $(IMG_MDIR)/
+	@$(SUDO) cp $(APP_OUTPUT)/* $(IMG_MDIR)/
 	@$(SUDO) cp $(KERNEL_EXEC) $(IMG_MDIR)/
 	
 	@echo "Image was done!"

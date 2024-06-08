@@ -27,6 +27,7 @@ typedef struct _Task {
 
     struct {
         void *Main;
+        void *Rbp;
     } Init;
 
     TaskFrame_t *Frame;
@@ -46,7 +47,11 @@ void TaskYield ();
 
 Task_t *TaskCurr ();
 
-Task_t *TaskCreate (void *Main);
+#define TC_INIT (1 << 0) // 不是已经存在的任务
+#define TC_KERN (0 << 1) // ring 0
+#define TC_USER (1 << 1) // ring 3
+
+Task_t *TaskCreate (void *Main, u32 Args);
 
 void TaskSleep (u64 Ticks);
 
