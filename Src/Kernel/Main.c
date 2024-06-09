@@ -12,6 +12,7 @@ extern void InitializeIdt ();
 extern void MemoryInit ();
 
 extern void TaskInit ();
+extern void SyscallInit ();
 
 extern void DevInit ();
 extern void KeyboardInit ();
@@ -21,6 +22,8 @@ extern void ClockInit ();
 static void __ProcInit ();
 
 #include <Irq.h>
+
+extern void TssSet (u64 rsp0);
 
 void KernelMain ()
 {
@@ -41,8 +44,17 @@ void KernelMain ()
     ClockInit();
 
     TaskInit();
+    SyscallInit();
 
     Task_t *Tmp = TaskCreate(__ProcInit, TC_INIT | TC_USER);
+
+    /*
+       就让当前的栈帧成为中断栈了!
+       从用户态来的中断将加载 tss 中的 rsp
+    */
+    __asm__ volatile (
+            "movq %%rsp, %%rdi\n"
+            "call TssSet": : : "%rdi");
 
     IntrStateEnable();
 

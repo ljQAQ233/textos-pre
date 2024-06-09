@@ -30,6 +30,8 @@ void ReadIdt (void *Idtr);
 
 void LoadIdt (void *Idtr);
 
+void LoadTss (u16 Idx);
+
 u64 ReadCr3 ();
 
 u64 WriteCr3 ();
