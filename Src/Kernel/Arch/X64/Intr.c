@@ -123,6 +123,9 @@ void InitializeIdt ()
         IntrPtr[i] = (IntrCaller_t)IntrCommon;
     }
 
+    _IdtSetEntry (INT_SYSCALL, (u64)(&IntrEntries + IHT_SIZ * INT_SYSCALL),
+                 KERN_CODE_SEG << 3, GATE_INT, 3, 1);
+
     Idtr.Base = (u64)&Idts;
     Idtr.Limit = IDT_MAX * sizeof(Idt_t) - 1;
 

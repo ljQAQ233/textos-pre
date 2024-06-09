@@ -30,6 +30,12 @@ LoadIdt:
     lidt [rdi]
     ret
 
+; void LoadTss (u16 Idx)
+global LoadTss
+LoadTss:
+    ltr di
+    ret
+
 ; void ReloadSegs ();
 global ReloadSegs
 ReloadSegs:

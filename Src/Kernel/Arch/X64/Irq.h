@@ -16,6 +16,8 @@
 #define IRQ_SDISK 15
 #define INT_SDISK 0x23
 
+#define INT_SYSCALL 0x80
+
 bool IntrStateGet ();
 
 void IntrStateEnable ();
