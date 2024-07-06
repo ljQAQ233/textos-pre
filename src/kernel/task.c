@@ -231,7 +231,7 @@ void task_init ()
 
     _curr = 0;
 
-    task_create (proc_a);
+    // task_create (proc_a);
     // task_create (proc_b);
 }
 
