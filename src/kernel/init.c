@@ -34,3 +34,7 @@ void kernel_init (bconfig_t *config)
     kernel_main();
 }
 
+bconfig_t *bconfig_get ()
+{
+    return &bconfig;
+}

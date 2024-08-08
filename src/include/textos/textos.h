@@ -20,4 +20,7 @@
 #define __lapic_va  0xffffff0000008000ull
 #define __ioapic_va 0xffffff0000000000ull
 
+#define __uefi_misc 0xffff800000000000ull // 64 MiB
+#define __uefi_max  0xffff800001000000ull
+
 #endif
