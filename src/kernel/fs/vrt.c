@@ -41,7 +41,7 @@ static bool _cmp (char *A, char *B)
     return true;
 }
 
-node_t *__vfs_test (node_t *start, char *path, node_t **node_last, char **path_last)
+node_t *vfs_test (node_t *start, char *path, node_t **node_last, char **path_last)
 {
     node_t *res = NULL,
            *curr = start;
@@ -87,7 +87,7 @@ static int _vfs_open (node_t *parent, node_t **node, char *path, u64 args)
 
     node_t *res;
     node_t *start;
-    if ((res = __vfs_test (parent, path, &start, &path)))
+    if ((res = vfs_test (parent, path, &start, &path)))
         goto fini;
 
     int stat = start->opts->open (start, path, args, &res);
@@ -104,7 +104,7 @@ fini:
     return 0;
 }
 
-int __vfs_open (node_t *parent, node_t **node, const char *path, u64 args)
+int vfs_open (node_t *parent, node_t **node, const char *path, u64 args)
 {
     ASSERTK (!parent || CKDIR(parent));
 
@@ -115,7 +115,7 @@ int __vfs_open (node_t *parent, node_t **node, const char *path, u64 args)
     return res;
 }
 
-int __vfs_read (node_t *this, void *buffer, size_t siz, size_t offset)
+int vfs_read (node_t *this, void *buffer, size_t siz, size_t offset)
 {
     ASSERTK (CKFILE(this));
 
@@ -126,7 +126,7 @@ int __vfs_read (node_t *this, void *buffer, size_t siz, size_t offset)
     return res;
 }
     
-int __vfs_write (node_t *this, void *buffer, size_t siz, size_t offset)
+int vfs_write (node_t *this, void *buffer, size_t siz, size_t offset)
 {
     ASSERTK (CKFILE(this));
 
@@ -137,7 +137,7 @@ int __vfs_write (node_t *this, void *buffer, size_t siz, size_t offset)
     return res;
 }
 
-int __vfs_close (node_t *this)
+int vfs_close (node_t *this)
 {
     int res = this->opts->close (this);
     if (res < 0)
@@ -146,7 +146,7 @@ int __vfs_close (node_t *this)
     return res;
 }
 
-int __vfs_remove (node_t *this)
+int vfs_remove (node_t *this)
 {
     int res = this->opts->remove (this);
     if (res < 0)
@@ -154,7 +154,7 @@ int __vfs_remove (node_t *this)
     return res;
 }
 
-int __vfs_truncate (node_t *this, size_t offset)
+int vfs_truncate (node_t *this, size_t offset)
 {
     ASSERTK (CKFILE(this));
 
@@ -164,11 +164,11 @@ int __vfs_truncate (node_t *this, size_t offset)
     return res;
 }
 
-int __vfs_release (node_t *this)
+int vfs_release (node_t *this)
 {
     if (this->attr & NA_DIR)
         while (this->child)
-            __vfs_release (this->child);
+            vfs_release (this->child);
 
     /* 除去父目录项的子目录项 */
     if (this->parent)
@@ -195,7 +195,7 @@ fini:
     return 0;
 }
 
-int __vfs_readdir (node_t *this)
+int vfs_readdir (node_t *this)
 {
     ASSERTK (!this || CKDIR(this));
     if (!this) this = _fs_root;
@@ -293,11 +293,11 @@ void fs_init ()
     node_t *file, *dir;
     
     char buf[1024] = "Hello world!";
-    __vfs_open (NULL, &dir, "/TEST", O_READ | O_CREATE | O_DIR);
-    __vfs_open (NULL, &file, "/TEST/test.txt", O_READ | O_CREATE);
-    __vfs_write (file, buf, 12, 0);
-    __vfs_truncate (file, 10000);
-    __vfs_readdir (NULL);
+    vfs_open (NULL, &dir, "/TEST", O_READ | O_CREATE | O_DIR);
+    vfs_open (NULL, &file, "/TEST/test.txt", O_READ | O_CREATE);
+    vfs_write (file, buf, 12, 0);
+    vfs_truncate (file, 10000);
+    vfs_readdir (NULL);
     __vfs_listnode (NULL);
 }
 
