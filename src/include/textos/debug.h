@@ -14,7 +14,8 @@ void dprintk(int lv, const char *format, ...);
 #define K_DEV   0x40   // device
 #define K_FS    0x80   // file system
 #define K_PIC   0x100  // pic / apic
-#define K_INIT  0x200  // initializer
+#define K_PCI   0x200  // pci bus / dev
+#define K_INIT  0x400  // initializer
 
 #define K_ALL   ((K_INIT << 1) - 1)
 
