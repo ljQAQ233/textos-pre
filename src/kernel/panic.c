@@ -2,7 +2,6 @@
 #include <textos/args.h>
 #include <textos/klib/vsprintf.h>
 
-#include <textos/debug.h>
 #include <textos/printk.h>
 
 void panic(const char *file, const u64 line, const char *format, ...)
