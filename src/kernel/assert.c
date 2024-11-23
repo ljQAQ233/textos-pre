@@ -1,5 +1,4 @@
 #include <cpu.h>
-#include <textos/debug.h>
 
 void assertk (
         const char *file,
