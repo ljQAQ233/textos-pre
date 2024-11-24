@@ -301,6 +301,7 @@ static void _init_partitions (dev_t *hd, mbr_t *rec)
 // todo: fix fat32_truncate
 
 extern void __pipe_init();
+extern void __kconio_init();
 
 void fs_init ()
 {
@@ -315,6 +316,7 @@ void fs_init ()
 
     // abstract
     __pipe_init();
+    __kconio_init();
 
     printk ("file system initialized!\n");
 }
