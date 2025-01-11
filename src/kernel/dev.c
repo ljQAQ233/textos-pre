@@ -58,17 +58,13 @@ dev_t *dev_new ()
     return d;
 }
 
-#define FOREACH_DEV() \
-        for (list_t *i = devs.list.back ; i != &devs.list ; i = i->back)
-
-dev_t *dev_lookup_type (int type, int subtype)
+dev_t *dev_lookup_type (int subtype, int idx)
 {
     FOREACH_DEV() {
         dev_pri_t *pri = CR(i, dev_pri_t, list);
-        if (pri->dev->type != type)
-            continue;
         if (pri->dev->subtype == subtype)
-            return pri->dev;
+            if (idx-- == 0)
+                return pri->dev;
     }
 
     return NULL;
