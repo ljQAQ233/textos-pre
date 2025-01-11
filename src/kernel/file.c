@@ -228,3 +228,7 @@ int pipe(int fds[2])
     fds[0] = fd0;
     fds[1] = fd1;
 }
+
+int mknod(char *path, int mode, int dev)
+{
+}
