@@ -1066,8 +1066,6 @@ end:
     return res;
 }
 
-
-/* 拿到的应该是干净的 路径 , 不以 '/' 开头 */
 static int fat32_open (node_t *parent, char *path, u64 args, node_t **result)
 {
     int ret = 0;

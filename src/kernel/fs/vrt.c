@@ -181,7 +181,7 @@ int vfs_open (node_t *parent, node_t **node, const char *path, u64 args)
     int ret = _vfs_walk (parent, node, (char *)path, args);
     node_t *opened = *node;
     if (opened && !(args & VFS_GAIN)) {
-        if (opened->attr & NA_ARCHIVE && args & VFS_DIR)
+        if (opened->attr & NA_REG && args & VFS_DIR)
             ret = -ENOTDIR;
         else if (opened->attr & NA_DIR && ~args & VFS_DIR)
             ret = -EISDIR;
@@ -285,6 +285,23 @@ int vfs_readdir (node_t *this, node_t **res, size_t idx)
     return ret;
 }
 
+extern fs_opts_t __dev_opts;
+
+int vfs_mknod (char *path, dev_t *dev)
+{
+    int ret;
+    
+    node_t *node;
+    ret = vfs_open(NULL, &node, path, VFS_CREATE);
+    if (ret < 0)
+        return ret;
+    node->pdata = dev;
+    node->attr |= NA_DEV;
+    node->opts = &__dev_opts;
+
+    return ret;
+}
+
 static inline void _vfs_listnode (node_t *node, int level)
 {
     if (node->attr & NA_DIR) {
@@ -359,6 +376,7 @@ static void _init_partitions (dev_t *hd, mbr_t *rec)
 
 extern void __pipe_init();
 extern void __kconio_init();
+extern void __vrtdev_init();
 
 void fs_init ()
 {
@@ -374,6 +392,7 @@ void fs_init ()
     // abstract
     __pipe_init();
     __kconio_init();
+    __vrtdev_init();
 
     printk ("file system initialized!\n");
 }

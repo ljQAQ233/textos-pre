@@ -23,9 +23,40 @@ static dev_pri_t devs = {
     .list = LIST_INIT(devs.list),
 };
 
+extern void __dev_initmem();
+
 void dev_init ()
 {
+    __dev_initmem();
+
     dev_list();
+}
+
+#include <textos/fs.h>
+#include <textos/args.h>
+#include <textos/klib/vsprintf.h>
+
+#define FOREACH_DEV() \
+        for (list_t *i = devs.list.back ; i != &devs.list ; i = i->back)
+
+// called recursively
+static void initnod(dev_t *dev)
+{
+    char path[128];
+    sprintf(path, "/dev/%s", dev->name);
+    vfs_mknod(path, dev);
+
+    for (list_t *p = &dev->subdev ; p != &dev->subdev ; p = p->forward)
+        initnod(CR(p, dev_t, subdev));
+}
+
+void dev_initnod()
+{
+    node_t *dir;
+    vfs_open(NULL, &dir, "/dev", VFS_CREATE | VFS_DIR);
+    FOREACH_DEV() {
+        initnod(CR(i, dev_pri_t, list)->dev);
+    }
 }
 
 void __dev_register (dev_pri_t *pri)
@@ -38,8 +69,30 @@ void __dev_register (dev_pri_t *pri)
     list_insert_tail (&devs.list, &pri->list);
 }
 
-void dev_register (dev_t *dev)
+static int applyid(dev_t *prt)
 {
+    static int total;
+    if (!prt)
+        return total++;
+    return CR(&prt->subdev.back, dev_t, subdev)->minor + 1;
+}
+
+void dev_register (dev_t *prt, dev_t *dev)
+{
+    if (prt != NULL)
+    {
+        int minor = applyid(prt);
+        dev->major = prt->major;
+        dev->minor = prt->minor;
+        list_insert(&prt->subdev, &dev->subdev);
+        return;
+    }
+
+    int major = applyid(NULL);
+    dev->major = major;
+    dev->minor = 0;
+    list_init(&dev->subdev);
+
     dev_pri_t *pri = malloc(sizeof(dev_pri_t));
     pri->dev = dev;
 
@@ -81,9 +134,20 @@ dev_t *dev_lookup_name (const char *name)
     return NULL;
 }
 
-dev_t *dev_lookup_id (int Ident)
+dev_t *dev_lookup_nr (int major, int minor)
 {
-    PANIC ("Look up by LKUP_ID has not been implented yet\n");
+    for (list_t *lm = &devs.list ; lm != &devs.list ; lm = lm->back) {
+        dev_pri_t *mp = CR(lm, dev_pri_t, list);
+        if (mp->dev->major != major)
+            continue;
+        if (minor == 0)
+            return mp->dev;
+        for (list_t *ls = &mp->dev->subdev ; ls != &mp->dev->subdev ; ls = ls->back) {
+            dev_t *sd = CR(ls, dev_t, subdev);
+            if (sd->minor == minor)
+                return sd;
+        }
+    }
 
     return NULL;
 }

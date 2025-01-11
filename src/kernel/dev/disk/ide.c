@@ -246,7 +246,7 @@ static bool ide_identify (pri_t **pri, int idx)
             dev->bread = (void *)ide_read;                           \
             dev->bwrite = (void *)ide_write;                         \
             dev->pdata = pri;                                        \
-            dev_register(dev);                                       \
+            dev_register(NULL, dev);                                 \
         }                                                            \
     } while (0);                                                     \
 
