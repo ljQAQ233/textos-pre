@@ -46,8 +46,9 @@ static void initnod(dev_t *dev)
     sprintf(path, "/dev/%s", dev->name);
     vfs_mknod(path, dev);
 
-    for (list_t *p = &dev->subdev ; p != &dev->subdev ; p = p->forward)
-        initnod(CR(p, dev_t, subdev));
+    if (dev->minor == 0)
+        for (list_t *p = dev->subdev.forward ; p != &dev->subdev ; p = p->forward)
+            initnod(CR(p, dev_t, subdev));
 }
 
 void dev_initnod()
@@ -71,7 +72,7 @@ void __dev_register (dev_pri_t *pri)
 
 static int applyid(dev_t *prt)
 {
-    static int total;
+    static int total = 0;
     if (!prt)
         return total++;
     return CR(&prt->subdev.back, dev_t, subdev)->minor + 1;
