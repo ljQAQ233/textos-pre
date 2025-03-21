@@ -12,6 +12,11 @@ static bool match(ipv4_t a, ipv4_t b)
     return *(u32 *)a == *(u32 *)b;
 }
 
+static bool mask(ipv4_t a, ipv4_t b, ipv4_t m)
+{
+    return *(u32 *)a & *(u32 *)m == *(u32 *)b & *(u32 *)m;
+}
+
 void net_rx_arp(nic_t *n, mbuf_t *m)
 {
     arphdr_t *hdr = mbuf_pullhdr(m, arphdr_t);
@@ -104,11 +109,17 @@ arpent_t *arp_init(ipv4_t dip)
 
 arpent_t *arp_get(nic_t *n, ipv4_t ip)
 {
+    ipv4_t qry;
+    if (mask(ip, n->ip, n->netmask))
+        memcpy(qry, ip, sizeof(qry));
+    else
+        memcpy(qry, n->gateway, sizeof(qry));
+
     list_t *ptr;
     LIST_FOREACH(ptr, &n->arps)
     {
         arpent_t *arp = CR(ptr, arpent_t, arps);
-        if (match(ip, arp->ip))
+        if (match(qry, arp->ip))
             return arp;
     }
 
